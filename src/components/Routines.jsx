@@ -1,17 +1,14 @@
-import { Plus, Pencil, Copy, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Copy, GripVertical } from "lucide-react";
 import { newId, cloneRoutines } from "../data/routines.js";
 import { cx } from "../lib/cx.js";
 import { Card } from "./ui/Card.jsx";
 import { Tag } from "./ui/Tag.jsx";
+import { SortableList, SortableItem } from "./ui/Sortable.jsx";
+import { arrayMove } from "../lib/array.js";
 
 export function Routines({ routines, onNew, onEdit, onChange }){
   const duplicate = (r) => onChange([...routines, { ...cloneRoutines(r), id: newId(), title: `${r.title} (copia)` }]);
-  const move = (i, dir) => {
-    const j = i + dir;
-    if (j < 0 || j >= routines.length) return;
-    const next = [...routines]; [next[i], next[j]] = [next[j], next[i]];
-    onChange(next);
-  };
+  const reorder = (from, to) => onChange(arrayMove(routines, from, to));
 
   return (
     <div className="p-4 pb-24">
@@ -34,45 +31,51 @@ export function Routines({ routines, onNew, onEdit, onChange }){
         </Card>
       )}
 
-      {routines.map((r, i) => (
-        <Card key={r.id} className="p-4 mb-3">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Tag accent={r.accent}>{r.tag}</Tag>
-              <span className="font-bold text-[16px] truncate">{r.title}</span>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="subir"
-                className="w-8 h-8 rounded-lg bg-panel2 text-mut cursor-pointer disabled:opacity-30 flex items-center justify-center"><ChevronUp size={16} /></button>
-              <button onClick={() => move(i, 1)} disabled={i === routines.length - 1} aria-label="bajar"
-                className="w-8 h-8 rounded-lg bg-panel2 text-mut cursor-pointer disabled:opacity-30 flex items-center justify-center"><ChevronDown size={16} /></button>
-            </div>
-          </div>
-          <div className="text-faint text-[12.5px] mb-3">
-            {r.ex.length} ejercicios · {r.ex.reduce((a, e) => a + (e.sets || 0), 0)} series
-          </div>
-          <div className="flex flex-col gap-1 mb-3">
-            {r.ex.map((e, j) => (
-              <div key={j} className={cx("flex justify-between gap-2 py-1", j && "border-t border-line")}>
-                <span className="text-sm text-ink truncate">{e.name}</span>
-                <span className="font-mono text-[13px] text-mut whitespace-nowrap ml-2.5">
-                  {e.sets}×{e.lo}-{e.hi} · {e.unit === "bw" ? "PC" : `${e.start}${e.unit.includes("/") ? e.unit.slice(2) : "kg"}`}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => onEdit(r)}
-              className="flex-1 flex items-center justify-center gap-1.5 border border-line rounded-lg py-2 text-sm font-medium text-ink cursor-pointer">
-              <Pencil size={14} /> Editar
-            </button>
-            <button onClick={() => duplicate(r)} aria-label="duplicar"
-              className="w-11 flex items-center justify-center border border-line rounded-lg py-2 text-mut cursor-pointer">
-              <Copy size={15} />
-            </button>
-          </div>
-        </Card>
-      ))}
+      <SortableList ids={routines.map(r => r.id)} onReorder={reorder}>
+        <div className="flex flex-col gap-3">
+          {routines.map((r) => (
+            <SortableItem key={r.id} id={r.id}>
+              {({ setNodeRef, style, handleProps, isDragging }) => (
+                <div ref={setNodeRef} style={style}>
+                  <Card className={cx("p-4", isDragging && "shadow-lg ring-2 ring-amber/40")}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <button {...handleProps} aria-label="arrastrar"
+                          className="text-faint cursor-grab active:cursor-grabbing touch-none shrink-0"><GripVertical size={18} /></button>
+                        <Tag accent={r.accent}>{r.tag}</Tag>
+                        <span className="font-bold text-[16px] truncate">{r.title}</span>
+                      </div>
+                    </div>
+                    <div className="text-faint text-[12.5px] mb-3 pl-7">
+                      {r.ex.length} ejercicios · {r.ex.reduce((a, e) => a + (e.sets || 0), 0)} series
+                    </div>
+                    <div className="flex flex-col gap-1 mb-3">
+                      {r.ex.map((e, j) => (
+                        <div key={j} className={cx("flex justify-between gap-2 py-1", j && "border-t border-line")}>
+                          <span className="text-sm text-ink truncate">{e.name}</span>
+                          <span className="font-mono text-[13px] text-mut whitespace-nowrap ml-2.5">
+                            {e.sets}×{e.lo}-{e.hi} · {e.unit === "bw" ? "PC" : `${e.start}${e.unit.includes("/") ? e.unit.slice(2) : "kg"}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => onEdit(r)}
+                        className="flex-1 flex items-center justify-center gap-1.5 border border-line rounded-lg py-2 text-sm font-medium text-ink cursor-pointer">
+                        <Pencil size={14} /> Editar
+                      </button>
+                      <button onClick={() => duplicate(r)} aria-label="duplicar"
+                        className="w-11 flex items-center justify-center border border-line rounded-lg py-2 text-mut cursor-pointer">
+                        <Copy size={15} />
+                      </button>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </SortableItem>
+          ))}
+        </div>
+      </SortableList>
     </div>
   );
 }

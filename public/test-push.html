@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Prueba de Descanso</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <style>
+    body{margin:0;background:#12151A;color:#ECEAE4;font-family:-apple-system,system-ui,sans-serif;
+         min-height:100vh;display:flex;flex-direction:column;gap:14px;padding:28px 20px;box-sizing:border-box}
+    h1{font-size:20px;margin:0 0 4px}
+    p{color:#889099;font-size:14px;line-height:1.5;margin:0}
+    button{padding:15px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
+    .primary{background:#E8A33D;color:#181818}
+    .ghost{background:#1F242C;color:#ECEAE4;border:1px solid #2A303A}
+    #status{font-family:ui-monospace,monospace;font-size:13px;color:#49B79E;white-space:pre-wrap;
+            background:#191D24;border:1px solid #2A303A;border-radius:10px;padding:12px;margin-top:6px}
+  </style>
+</head>
+<body>
+  <h1>🔔 Prueba de aviso de descanso</h1>
+  <p><b>Importante (iPhone):</b> primero pulsa Compartir → “Agregar a inicio”, y abre la app desde su ícono. Solo así iOS permite las notificaciones.</p>
+  <button class="primary" id="btnSub">1 · Activar notificaciones</button>
+  <button class="ghost" id="btn10">2 · Probar aviso en 10 s (bloquea el teléfono ahora)</button>
+  <button class="ghost" id="btn120">Probar aviso en 120 s</button>
+  <div id="status">Esperando…</div>
+
+  <script type="module">
+    import { initPush, subscribePush, scheduleRest, isStandalone } from "/push-client.js";
+    const s = document.getElementById("status");
+    const log = (m) => (s.textContent = m + "\n" + s.textContent);
+    if (!isStandalone()) log("⚠️ Abierta en navegador. En iPhone: Compartir → Agregar a inicio, y ábrela desde el ícono.");
+    initPush().then(() => log("SW registrado ✓")).catch((e) => log("Error SW: " + e.message));
+    document.getElementById("btnSub").onclick = async () => {
+      try { await subscribePush(); log("Suscrito ✓ — ya puedes probar."); }
+      catch (e) { log("Error: " + e.message); }
+    };
+    document.getElementById("btn10").onclick = () => { scheduleRest(10); log("Programado: aviso en 10 s. Bloquea el teléfono."); };
+    document.getElementById("btn120").onclick = () => { scheduleRest(120); log("Programado: aviso en 120 s."); };
+  </script>
+</body>
+</html>

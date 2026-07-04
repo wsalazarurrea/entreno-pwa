@@ -1,0 +1,14 @@
+{
+  "name": "Asistente de Entrenamiento",
+  "short_name": "Entreno",
+  "description": "Registro de entrenamiento con avisos de descanso",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#12151A",
+  "theme_color": "#12151A",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}

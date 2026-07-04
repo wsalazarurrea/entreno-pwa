@@ -1,0 +1,49 @@
+{
+  "name": "Rest Timer Push",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rest-timer",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-rest",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ $json.body.seconds || 120 }}",
+        "unit": "seconds"
+      },
+      "id": "wait-rest",
+      "name": "Esperar descanso",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [480, 300],
+      "webhookId": "wait-rest-timer"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Requiere: npm i web-push en el entorno de n8n\n// y variable de entorno  NODE_FUNCTION_ALLOW_EXTERNAL=web-push\nconst webpush = require('web-push');\n\n// ⬇️ REEMPLAZA con TUS claves (genera con: npx web-push generate-vapid-keys)\nconst VAPID_PUBLIC  = 'PEGA_TU_CLAVE_PUBLICA';\nconst VAPID_PRIVATE = 'PEGA_TU_CLAVE_PRIVADA';\nconst CONTACT = 'mailto:tu-correo@ejemplo.com';\n\nwebpush.setVapidDetails(CONTACT, VAPID_PUBLIC, VAPID_PRIVATE);\n\nconst data = $input.first().json.body || $input.first().json;\nconst subscription = data.subscription;\nconst payload = JSON.stringify(data.payload || { title: 'Descanso terminado', body: 'A la siguiente serie' });\n\ntry {\n  await webpush.sendNotification(subscription, payload);\n  return [{ json: { sent: true } }];\n} catch (err) {\n  return [{ json: { sent: false, error: String(err && err.statusCode || err) } }];\n}"
+      },
+      "id": "code-push",
+      "name": "Enviar Web Push",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Esperar descanso", "type": "main", "index": 0 }]] },
+    "Esperar descanso": { "main": [[{ "node": "Enviar Web Push", "type": "main", "index": 0 }]] }
+  },
+  "settings": {},
+  "active": false
+}

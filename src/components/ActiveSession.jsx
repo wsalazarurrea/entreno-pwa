@@ -8,10 +8,9 @@ import { Tag } from "./ui/Tag.jsx";
 import { Stepper } from "./ui/Stepper.jsx";
 import { ACCENT } from "./ui/accent.js";
 
-const REST_SECONDS = 120;
-
-export function ActiveSession({ routine, state, onFinish, onCancel }){
-  const a = ACCENT[routine.accent];
+export function ActiveSession({ routine, state, restSeconds = 120, onFinish, onCancel }){
+  const REST_SECONDS = restSeconds;
+  const a = ACCENT[routine.accent] || ACCENT.violet;
   const [log, setLog] = useState(()=> routine.ex.map(ex=>{
     const s = suggestion(ex, state.lastperf);
     return { name:ex.name, sug:s, sets: Array.from({length:ex.sets},()=>({w:s.w, r:ex.hi, done:false})) };
@@ -58,9 +57,9 @@ export function ActiveSession({ routine, state, onFinish, onCancel }){
           </button>
           {restLeft!=null && (restLeft>0
             ? <button onClick={()=>setRestEnd(s=>Math.max(Date.now(),(s||Date.now()))+30000)}
-                className="bg-amber text-[#181818] rounded-lg px-3 py-2 font-bold font-mono cursor-pointer" title="Toca para +30s">⏱ {fmt(restLeft)}</button>
+                className="bg-amber text-white rounded-lg px-3 py-2 font-bold font-mono cursor-pointer" title="Toca para +30s">⏱ {fmt(restLeft)}</button>
             : <button onClick={()=>{beep();setRestEnd(null);}}
-                className="bg-teal text-[#0c1512] rounded-lg px-3 py-2 font-bold font-mono cursor-pointer flex items-center gap-1"><Check size={16}/> ¡Listo!</button>)}
+                className="bg-teal text-white rounded-lg px-3 py-2 font-bold font-mono cursor-pointer flex items-center gap-1"><Check size={16}/> ¡Listo!</button>)}
           <button onClick={onCancel} className="text-mut border border-line rounded-lg px-2.5 py-2 cursor-pointer text-sm">Salir</button>
         </div>
       </div>
@@ -106,7 +105,7 @@ export function ActiveSession({ routine, state, onFinish, onCancel }){
                       </div>
                       <button onClick={()=>toggle(ei,si)} aria-label="completar"
                         className={cx("w-[38px] h-[38px] rounded-[10px] border-[1.5px] cursor-pointer justify-self-center flex items-center justify-center",
-                          s.done ? cx(a.bg, "border-transparent text-[#181818]") : "border-line text-faint")}>
+                          s.done ? cx(a.bg, "border-transparent text-white") : "border-line text-faint")}>
                         <Check size={18}/>
                       </button>
                     </div>
@@ -121,7 +120,7 @@ export function ActiveSession({ routine, state, onFinish, onCancel }){
 
       <div className="fixed bottom-0 left-0 right-0 p-4" style={{ background:"linear-gradient(180deg, transparent, var(--color-bg) 30%)" }}>
         <button onClick={()=>onFinish(log, Math.floor((Date.now()-start)/1000))}
-          className={cx("w-full py-3.5 rounded-2xl text-[16px] font-bold cursor-pointer shadow-lg text-[#181818]", a.bg)}>
+          className={cx("w-full py-3.5 rounded-2xl text-[16px] font-bold cursor-pointer shadow-lg text-white", a.bg)}>
           Finalizar y analizar
         </button>
       </div>

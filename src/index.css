@@ -1,24 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #12151a;
-  --color-panel: #191d24;
-  --color-panel2: #1f242c;
-  --color-line: #2a303a;
-  --color-ink: #eceae4;
-  --color-mut: #889099;
-  --color-faint: #5b636e;
-  --color-amber: #e8a33d;
-  --color-teal: #49b79e;
-  --color-coral: #e27d6b;
-  --color-violet: #8e86d8;
+  /* Tema claro cálido */
+  --color-bg: #fdf8f2;
+  --color-panel: #ffffff;
+  --color-panel2: #f6efe6;
+  --color-line: #ece2d5;
+  --color-ink: #241c13;
+  --color-mut: #8c8175;
+  --color-faint: #b5a896;
+  --color-amber: #ef6c2e;  /* naranja — primario/marca */
+  --color-teal: #14a88c;
+  --color-coral: #f0616a;
+  --color-violet: #e0a23c; /* dorado cálido — 4º acento */
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -46,7 +47,8 @@ button {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--color-amber);
   outline-offset: 2px;
 }

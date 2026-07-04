@@ -97,11 +97,11 @@ export function History({ state }){
       <Card className="p-2 pt-4" style={{ height:260 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={series} margin={{ top:4, right:12, left:-14, bottom:0 }}>
-            <CartesianGrid stroke="#2A303A" vertical={false}/>
-            <XAxis dataKey="date" stroke="#5B636E" fontSize={11} tickLine={false} axisLine={{stroke:"#2A303A"}} minTickGap={24}/>
-            <YAxis stroke="#5B636E" fontSize={11} tickLine={false} axisLine={false} width={44} domain={['dataMin-5','dataMax+5']}/>
-            <Tooltip contentStyle={{background:"#1F242C", border:"1px solid #2A303A", borderRadius:8, color:"#ECEAE4", fontSize:12}} labelStyle={{color:"#889099"}}/>
-            <Line type="monotone" dataKey="e1rm" stroke="#E8A33D" strokeWidth={2.5} dot={{r:2,fill:"#E8A33D"}} activeDot={{r:5}}/>
+            <CartesianGrid stroke="#ECE2D5" vertical={false}/>
+            <XAxis dataKey="date" stroke="#8C8175" fontSize={11} tickLine={false} axisLine={{stroke:"#ECE2D5"}} minTickGap={24}/>
+            <YAxis stroke="#8C8175" fontSize={11} tickLine={false} axisLine={false} width={44} domain={['dataMin-5','dataMax+5']}/>
+            <Tooltip contentStyle={{background:"#FFFFFF", border:"1px solid #ECE2D5", borderRadius:8, color:"#241C13", fontSize:12}} labelStyle={{color:"#8C8175"}}/>
+            <Line type="monotone" dataKey="e1rm" stroke="#EF6C2E" strokeWidth={2.5} dot={{r:2,fill:"#EF6C2E"}} activeDot={{r:5}}/>
           </LineChart>
         </ResponsiveContainer>
       </Card>

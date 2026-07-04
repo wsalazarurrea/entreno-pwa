@@ -1,5 +1,9 @@
 import { storage } from "./storage.js";
 import { SEED } from "../data/seedHistory.js";
+import { DEFAULT_ROUTINES, cloneRoutines } from "../data/routines.js";
+
+export const DEFAULT_REST_SECONDS = 120;
+export const DEFAULT_PROGRAM_NAME = "Mi entrenamiento";
 
 export async function loadState(){ try{ const r=await storage.get("pt_state_v1"); return r?JSON.parse(r.value):null; }catch(e){ return null; } }
 export async function saveState(s){ try{ await storage.set("pt_state_v1", JSON.stringify(s)); }catch(e){ console.error(e); } }
@@ -7,7 +11,19 @@ export async function saveState(s){ try{ await storage.set("pt_state_v1", JSON.s
 export function seedState(){
   const last={}; Object.entries(SEED.last||{}).forEach(([k,v])=>{ last[k]={date:v.date, sets:v.sets}; });
   const history={}; Object.entries(SEED.hist||{}).forEach(([k,v])=>{ history[k]=v.slice(); });
-  return { lastperf:last, history, sessions:[] };
+  return { lastperf:last, history, sessions:[], routines:cloneRoutines(DEFAULT_ROUTINES), restSeconds:DEFAULT_REST_SECONDS, programName:DEFAULT_PROGRAM_NAME };
+}
+
+/** Rellena campos nuevos en estados guardados por versiones anteriores, para
+ * no perder el historial del usuario al añadir funciones (rutinas editables,
+ * descanso configurable, nombre de programa). */
+export function migrateState(s){
+  if(!s) return { state:s, changed:false };
+  const n = { ...s }; let changed = false;
+  if(!Array.isArray(n.routines) || !n.routines.length){ n.routines = cloneRoutines(DEFAULT_ROUTINES); changed = true; }
+  if(typeof n.restSeconds !== "number"){ n.restSeconds = DEFAULT_REST_SECONDS; changed = true; }
+  if(!n.programName){ n.programName = DEFAULT_PROGRAM_NAME; changed = true; }
+  return { state:n, changed };
 }
 
 export function incFor(ex){

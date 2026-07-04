@@ -1,23 +1,23 @@
-import { ROUTINES } from "../data/routines.js";
-
-const routineByTag = new Map(Object.values(ROUTINES).map(r => [r.tag, r]));
-
-function matchRoutine(exerciseNames){
-  let best = null, bestScore = 0;
-  Object.values(ROUTINES).forEach(r => {
-    const routineNames = new Set(r.ex.map(e => e.name));
-    const overlap = exerciseNames.filter(n => routineNames.has(n)).length;
-    const score = overlap / Math.max(routineNames.size, exerciseNames.length);
-    if (score > bestScore) { bestScore = score; best = r; }
-  });
-  return bestScore >= 0.4 ? best : null;
-}
-
 /** Reconstruye una línea de tiempo única de días de entreno, combinando el
  * historial importado de Hevy (agregado por ejercicio) con las sesiones
  * registradas dentro de la app — ambos viven en state.history, agrupado por
  * fecha. Esto es lo que hace visibles las "rutinas pasadas". */
 export function buildTimeline(state){
+  const routines = state.routines || [];
+  const routineByTag = new Map(routines.map(r => [r.tag, r]));
+
+  const matchRoutine = (exerciseNames) => {
+    let best = null, bestScore = 0;
+    routines.forEach(r => {
+      const routineNames = new Set(r.ex.map(e => e.name));
+      if (!routineNames.size) return;
+      const overlap = exerciseNames.filter(n => routineNames.has(n)).length;
+      const score = overlap / Math.max(routineNames.size, exerciseNames.length);
+      if (score > bestScore) { bestScore = score; best = r; }
+    });
+    return bestScore >= 0.4 ? best : null;
+  };
+
   const byDate = new Map();
   Object.entries(state.history || {}).forEach(([name, entries]) => {
     (entries || []).forEach(entry => {
@@ -40,8 +40,8 @@ export function buildTimeline(state){
       exercises: [...exercises].sort((a, b) => b.volume - a.volume),
       volume,
       source: app ? "app" : "hevy",
-      tag: routine?.tag ?? null,
-      title: routine?.title ?? null,
+      tag: app?.tag ?? routine?.tag ?? null,
+      title: app?.title ?? routine?.title ?? null,
       accent: routine?.accent ?? "violet",
       durationSec: app?.durationSec ?? null,
       totalSets: app?.totalSets ?? null,

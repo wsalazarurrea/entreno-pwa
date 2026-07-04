@@ -3,7 +3,7 @@
    el cambio también allá (public/ no pasa por el bundler de Vite). */
 
 // ⬇️ Pon aquí la Production URL de tu webhook de n8n (paso 4 del README)
-const N8N_WEBHOOK = "https://TU-DOMINIO-N8N/webhook/rest-timer";
+const N8N_WEBHOOK = "http://129.121.58.135/webhook/rest-timer";
 const VAPID_PUBLIC = "BAhTAdSqrI77Q-lirqCCzBcu60cpxlwx1R2BbniB_I0qcoqkPYpia5CHeeoRrE0cU2kFcVsOiIZcKFwjVH9ngnY";
 
 function urlBase64ToUint8Array(base64String) {

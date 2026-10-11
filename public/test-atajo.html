@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prueba del atajo</title>
+  <style>
+    body { margin: 0; font: 16px -apple-system, system-ui, sans-serif; background: #fdf8f2; color: #241c13; }
+    main { max-width: 460px; margin: 0 auto; padding: 24px 16px; }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    p { color: #8c8175; font-size: 14px; line-height: 1.45; }
+    label { display: block; font-size: 12px; color: #8c8175; margin: 14px 0 4px; }
+    input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; border: 1px solid #ece2d5; border-radius: 12px; background: #fff; }
+    button { width: 100%; margin-top: 18px; padding: 14px; font-size: 16px; font-weight: 700; border: 0; border-radius: 12px; background: #ef6c2e; color: #fff; }
+    .res { margin-top: 20px; padding: 14px; border-radius: 12px; background: #fff; border: 1px solid #ece2d5; font-size: 15px; white-space: pre-wrap; word-break: break-word; }
+    .ok { border-color: #14a88c; } .err { border-color: #f0616a; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Prueba del atajo de Salud</h1>
+  <p>Ejecuta tu atajo pasándole los minutos, igual que lo hará Entreno, y muestra aquí lo que responde Atajos (incluido el texto del error si falla).</p>
+  <label for="n">Nombre exacto del atajo</label>
+  <input id="n" value="Entreno a Salud" />
+  <label for="m">Minutos</label>
+  <input id="m" value="45" inputmode="numeric" />
+  <button id="go">Ejecutar atajo</button>
+  <div id="out"></div>
+</main>
+<script>
+  const base = location.origin + location.pathname;
+  const q = new URLSearchParams(location.search);
+  if (q.get("r")) {
+    const out = document.getElementById("out");
+    const r = q.get("r");
+    out.className = "res " + (r === "ok" ? "ok" : "err");
+    out.textContent =
+      (r === "ok" ? "✅ Atajos respondió: terminó bien. Revisa Fitness." : r === "cancel" ? "⚠️ Atajos respondió: cancelado." : "❌ Atajos respondió: error.") +
+      (q.get("errorMessage") ? "\n\nMensaje: " + q.get("errorMessage") : "") +
+      (q.get("result") ? "\n\nResultado: " + q.get("result") : "") +
+      "\n\n" + new Date().toLocaleTimeString("es-CL", { hour12: false });
+  }
+  document.getElementById("go").onclick = () => {
+    const n = document.getElementById("n").value.trim();
+    const m = document.getElementById("m").value.trim();
+    const cb = (k) => encodeURIComponent(base + "?r=" + k);
+    location.href = "shortcuts://x-callback-url/run-shortcut?name=" + encodeURIComponent(n) +
+      "&input=text&text=" + encodeURIComponent(m) +
+      "&x-success=" + cb("ok") + "&x-error=" + cb("error") + "&x-cancel=" + cb("cancel");
+  };
+</script>
+</body>
+</html>

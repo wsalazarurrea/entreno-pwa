@@ -3,7 +3,6 @@ import { ChevronDown, Ellipsis, Check, Plus, Timer, Volume2, VolumeX, Trash2, Re
 import { lastPerformance, SET_TYPES, isWorking } from "../lib/workouts.js";
 import { suggestion, placeholderFor, parseNum, makeSessionExercise, sessionDiffersFromRoutine, incFor } from "../lib/training.js";
 import { formatClock, formatRest, formatShort } from "../lib/dates.js";
-import { scheduleRest } from "../lib/push-client.js";
 import { arrayMove } from "../lib/array.js";
 import { cx } from "../lib/cx.js";
 import { Card } from "./ui/Card.jsx";
@@ -159,12 +158,14 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
   useEffect(() => {
     if (session.restEnd && now >= session.restEnd) {
       if (now - session.restEnd < 4000) beep(); // si vuelves tarde a la app no suena de golpe
-      update(s => ({ ...s, restEnd: null }));
+      update(s => ({ ...s, restEnd: null, prevRestEnd: s.restEnd, prevRestSkipped: false }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now, session.restEnd]);
 
-  const startRest = (sec) => { update(s => ({ ...s, restEnd: Date.now() + sec * 1000, restTotal: sec })); scheduleRest(sec); };
+  // El aviso push no se programa aquí sino al salir de la app (App.jsx), con el tiempo que quede
+  // en ese momento: así respeta los −15 / +15 / Omitir hechos mientras la app está abierta.
+  const startRest = (sec) => update(s => ({ ...s, restEnd: Date.now() + sec * 1000, restTotal: sec }));
   const adjustRest = (d) => update(s => s.restEnd ? { ...s, restEnd: Math.max(Date.now() + 1000, s.restEnd + d * 1000), restTotal: Math.max(1, (s.restTotal || 0) + d) } : s);
   const restLeft = session.restEnd ? Math.max(0, Math.ceil((session.restEnd - now) / 1000)) : null;
 
@@ -305,7 +306,7 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
               <div className="font-mono font-bold text-[26px] leading-none tabular-nums">{formatClock(restLeft)}</div>
             </div>
             <button type="button" onClick={() => adjustRest(15)} className="w-14 py-2.5 rounded-lg bg-panel2 font-mono font-semibold cursor-pointer">+15</button>
-            <button type="button" onClick={() => update(s => ({ ...s, restEnd: null }))} className="px-3.5 py-2.5 rounded-lg bg-amber text-white font-bold cursor-pointer">Omitir</button>
+            <button type="button" onClick={() => update(s => ({ ...s, restEnd: null, prevRestEnd: s.restEnd, prevRestSkipped: true }))} className="px-3.5 py-2.5 rounded-lg bg-amber text-white font-bold cursor-pointer">Omitir</button>
           </div>
         </div>
       )}

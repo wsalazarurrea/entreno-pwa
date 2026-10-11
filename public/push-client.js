@@ -47,15 +47,17 @@ export function getSubscription() {
 
 // Programa el aviso: n8n espera `seconds` y luego dispara el push.
 // Devuelve true si n8n lo aceptó (sin suscripción, el timer local sigue funcionando igual).
-export async function scheduleRest(seconds = 120, payload = { title: "Descanso terminado", body: "¡A la siguiente serie! 💪" }) {
+// keepalive: para enviarlo justo cuando la app pasa a segundo plano (iOS la congela enseguida).
+export async function scheduleRest(seconds = 120, payload = { title: "Descanso terminado", body: "¡A la siguiente serie! 💪" }, { keepalive = false, scheduledFor = Date.now() + seconds * 1000 } = {}) {
   const subscription = getSubscription();
   if (!subscription) return false;
   try {
     const res = await fetch(N8N_WEBHOOK, {
       method: "POST",
+      keepalive,
       headers: { "Content-Type": "application/json" },
       // scheduledFor: el service worker lo usa para mostrar cuánto se adelantó o atrasó el aviso.
-      body: JSON.stringify({ seconds, subscription, payload: { ...payload, scheduledFor: Date.now() + seconds * 1000 } })
+      body: JSON.stringify({ seconds, subscription, payload: { ...payload, scheduledFor } })
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
     return true;

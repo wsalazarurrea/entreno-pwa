@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronUp } from "lucide-react";
 import {
   loadState, saveState, seedState, migrateState, loadActive, saveActive, clearActive,
@@ -8,7 +8,7 @@ import { mergeHevyImport } from "./lib/hevyImport.js";
 import { buildCatalog } from "./data/exercises.js";
 import { blankRoutine } from "./data/routines.js";
 import { formatClock } from "./lib/dates.js";
-import { initPush } from "./lib/push-client.js";
+import { initPush, scheduleRest } from "./lib/push-client.js";
 import { BottomNav } from "./components/BottomNav.jsx";
 import { Train } from "./components/Train.jsx";
 import { WorkoutLogger } from "./components/WorkoutLogger.jsx";
@@ -57,6 +57,29 @@ export default function App(){
   useEffect(()=>{ initPush().catch(()=>{}); },[]);
   // Cada cambio del entrenamiento en curso se guarda al instante (sobrevive a que iOS cierre la app).
   useEffect(()=>{ if(session) saveActive(session); },[session]);
+
+  // Aviso de descanso en segundo plano: se programa al salir de la app (bloquear el teléfono o
+  // cambiar de app), con el tiempo que quede en ese momento. Con la app abierta suena el
+  // temporizador propio, así que no hace falta push. Si vuelves y cambias el descanso, al salir
+  // de nuevo se programa otro (el anterior llega como aviso neutro, ver public/sw.js).
+  const sessionRef = useRef(null);
+  const pushedForRef = useRef(null);
+  useEffect(()=>{ sessionRef.current = session; },[session]);
+  useEffect(()=>{
+    const onHide = (e) => {
+      if(e.type === "visibilitychange" && document.visibilityState !== "hidden") return;
+      const s = sessionRef.current;
+      if(!s || s.mode !== "live" || !s.restEnd) return;
+      const left = Math.round((s.restEnd - Date.now()) / 1000);
+      if(left < 2 || pushedForRef.current === s.restEnd || s.pushedFor === s.restEnd) return;
+      pushedForRef.current = s.restEnd;
+      scheduleRest(left, undefined, { keepalive: true, scheduledFor: s.restEnd });
+      setSession(x => x && x.restEnd === s.restEnd ? { ...x, pushedFor: s.restEnd } : x);
+    };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onHide);
+    return () => { document.removeEventListener("visibilitychange", onHide); window.removeEventListener("pagehide", onHide); };
+  },[]);
 
   const persist = async(ns)=>{ setState(ns); await saveState(ns); };
 

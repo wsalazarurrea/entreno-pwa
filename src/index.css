@@ -1,28 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  /* Tema claro cálido */
-  --color-bg: #fdf8f2;
-  --color-panel: #ffffff;
-  --color-panel2: #f6efe6;
-  --color-line: #ece2d5;
-  --color-ink: #241c13;
-  --color-mut: #8c8175;
-  --color-faint: #b5a896;
-  --color-amber: #ef6c2e;  /* naranja — primario/marca */
-  --color-teal: #14a88c;
-  --color-coral: #f0616a;
-  --color-violet: #e0a23c; /* dorado cálido — 4º acento */
+  /* Tema "gym de los 80": noche synthwave + neón (a juego con el icono). */
+  --color-bg: #0f0a1a;
+  --color-panel: #1a1229;
+  --color-panel2: #251a3b;
+  --color-line: #3a2b57;
+  --color-ink: #fff4e8;
+  --color-mut: #cbbde3;
+  --color-faint: #9b8bbd;
+  --color-amber: #ff6b1a;  /* naranja neón — primario/marca */
+  --color-teal: #1fe0bd;   /* cian neón — completado / positivo */
+  --color-coral: #ff3d7f;  /* magenta — peligro / acento */
+  --color-violet: #ffc93c; /* dorado — 4º acento */
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --font-display: "Anton", Impact, "Arial Narrow Bold", sans-serif;
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   /* Zonas seguras del iPhone (notch / isla y barra de inicio). */
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
+  --grad-hot: linear-gradient(135deg, #ff8a1f 0%, #ff4d4d 55%, #ff2e88 100%);
 }
 
 * {
@@ -44,9 +46,7 @@ textarea {
   font-size: 16px;
 }
 
-/* El contenido empieza debajo de la barra de estado. Si iOS mantiene la barra
-   translúcida de la instalación anterior, esta franja oscura la cubre para que
-   el reloj (blanco) siga legible y nada quede tapado al hacer scroll. */
+/* El contenido empieza debajo de la barra de estado; la franja la cubre al hacer scroll. */
 #root {
   padding-top: var(--sat);
 }
@@ -57,12 +57,8 @@ body::before {
   left: 0;
   right: 0;
   height: var(--sat);
-  background: #241c13;
-  z-index: 60;
-}
-/* App nativa: la barra de estado usa texto oscuro, así que la franja va del color de fondo. */
-html.native body::before {
   background: var(--color-bg);
+  z-index: 60;
 }
 .sticky-top {
   position: sticky;
@@ -80,7 +76,12 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
+  /* Resplandor de atardecer synthwave arriba y abajo. */
+  background-image:
+    radial-gradient(120% 45% at 50% -8%, rgba(255, 46, 136, 0.22), transparent 70%),
+    radial-gradient(90% 35% at 50% 108%, rgba(255, 107, 26, 0.16), transparent 70%);
+  background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -108,6 +109,44 @@ select:focus-visible {
 ::-webkit-scrollbar-thumb {
   background: var(--color-line);
   border-radius: 4px;
+}
+
+/* ---------- Identidad "gym de los 80" ---------- */
+
+/* Títulos tipo póster: condensados, gruesos, en mayúsculas. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Texto con degradado neón. */
+.text-hot {
+  background: var(--grad-hot);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* El naranja sólido de la marca pasa a ser un degradado caliente con brillo. */
+.bg-amber {
+  background-image: var(--grad-hot);
+  box-shadow: 0 6px 20px -8px rgba(255, 77, 77, 0.7);
+}
+
+/* Muñequera de 3 franjas (rojo, naranja, dorado) bajo los títulos. */
+.sweatband {
+  height: 5px;
+  width: 92px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff2e88 0 33%, #ff6b1a 33% 66%, #ffc93c 66% 100%);
+  box-shadow: 0 0 12px rgba(255, 107, 26, 0.55);
+}
+
+/* Brillo neón para estados activos. */
+.glow-amber {
+  filter: drop-shadow(0 0 6px rgba(255, 107, 26, 0.75));
 }
 
 @media (prefers-reduced-motion: reduce) {

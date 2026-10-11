@@ -27,7 +27,7 @@ function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise, onSendToHe
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
               {w.tag && <Tag accent={w.accent || "violet"}>{w.tag}</Tag>}
-              <span className="font-bold text-[15.5px] truncate">{w.title}</span>
+              <span className="font-display text-[20px] leading-none truncate">{w.title}</span>
               {w.source !== "app" && <span className="text-[10px] text-faint border border-line rounded px-1.5 py-0.5 shrink-0">{w.source === "hevy" ? "Hevy" : "Hevy · totales"}</span>}
             </div>
             <div className="text-faint text-[12.5px]">{formatDay(w.date)}{w.durationSec ? ` · ${formatDuration(w.durationSec)}` : ""}</div>
@@ -38,13 +38,16 @@ function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise, onSendToHe
           {iv ? (
             <>
               <div><div className="text-faint text-[11px]">Duración</div><div className="font-mono font-semibold">{formatDuration(w.durationSec) || "—"}</div></div>
-              <div><div className="text-faint text-[11px]">Intervalos</div><div className="font-mono font-semibold">{iv.summary}</div></div>
-              {!iv.completed && <div><div className="text-faint text-[11px]">Estado</div><div className="font-semibold text-mut">Detenido</div></div>}
+              {iv.resultLabel
+                ? <div><div className="text-faint text-[11px]">Resultado</div><div className="font-mono font-semibold text-teal">{iv.resultLabel}</div></div>
+                : <div><div className="text-faint text-[11px]">Intervalos</div><div className="font-mono font-semibold">{iv.summary}</div></div>}
+              {!iv.completed && !iv.resultLabel && <div><div className="text-faint text-[11px]">Estado</div><div className="font-semibold text-mut">Detenido</div></div>}
             </>
           ) : <div><div className="text-faint text-[11px]">Volumen</div><div className="font-mono font-semibold">{Math.round(st.volume).toLocaleString("es")} kg</div></div>}
           {st.sets > 0 && <div><div className="text-faint text-[11px]">Series</div><div className="font-mono font-semibold">{st.sets}</div></div>}
           {prs > 0 && <div><div className="text-faint text-[11px]">Récords</div><div className="font-mono font-semibold text-teal flex items-center gap-1"><Trophy size={13} />{prs}</div></div>}
         </div>
+        {iv?.timer?.workout?.length > 0 && <div className="mt-2 text-[13px] text-mut">{iv.timer.workout.join(" · ")}</div>}
         {!open && (
           <div className="mt-2.5 flex flex-col gap-0.5">
             {w.exercises.slice(0, 4).map((e, i) => (
@@ -121,7 +124,7 @@ export function History({ state, catalog, onEdit, onRepeat, onDelete, onSendToHe
       <div className="flex bg-panel2 rounded-xl p-1 mb-4">
         {[["workouts", "Entrenamientos"], ["exercises", "Ejercicios"]].map(([k, l]) => (
           <button key={k} type="button" onClick={() => { setView(k); setExercise(null); }}
-            className={cx("flex-1 py-2 rounded-lg text-[14px] font-semibold cursor-pointer", view === k ? "bg-panel text-ink shadow-sm" : "text-mut")}>{l}</button>
+            className={cx("flex-1 py-2 rounded-lg text-[14px] font-semibold cursor-pointer", view === k ? "bg-amber text-white shadow-sm" : "text-mut")}>{l}</button>
         ))}
       </div>
 

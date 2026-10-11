@@ -50,7 +50,7 @@ export function ExerciseDetail({ name, info, workouts, onBack }){
   return (
     <div>
       <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-mut text-sm mb-3 cursor-pointer"><ArrowLeft size={17} /> Ejercicios</button>
-      <h2 className="text-xl font-bold leading-snug">{name}</h2>
+      <h2 className="font-display text-[26px] leading-tight">{name}</h2>
       {info && <div className="text-[13px] text-mut mb-4">{info.muscle} · {info.equipment}</div>}
 
       <div className="grid grid-cols-2 gap-2 mb-4">
@@ -75,11 +75,11 @@ export function ExerciseDetail({ name, info, workouts, onBack }){
         {series.length > 1 ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={series} margin={{ top: 4, right: 12, left: -14, bottom: 0 }}>
-              <CartesianGrid stroke="#ECE2D5" vertical={false} />
-              <XAxis dataKey="date" stroke="#8C8175" fontSize={11} tickLine={false} axisLine={{ stroke: "#ECE2D5" }} minTickGap={24} />
-              <YAxis stroke="#8C8175" fontSize={11} tickLine={false} axisLine={false} width={44} domain={["auto", "auto"]} />
-              <Tooltip formatter={(v) => [`${v} ${m.unit}`, m.label]} contentStyle={{ background: "#FFFFFF", border: "1px solid #ECE2D5", borderRadius: 8, color: "#241C13", fontSize: 12 }} labelStyle={{ color: "#8C8175" }} />
-              <Line type="monotone" dataKey="v" stroke="#EF6C2E" strokeWidth={2.5} dot={{ r: 2, fill: "#EF6C2E" }} activeDot={{ r: 5 }} />
+              <CartesianGrid stroke="#3a2b57" vertical={false} />
+              <XAxis dataKey="date" stroke="#cbbde3" fontSize={11} tickLine={false} axisLine={{ stroke: "#3a2b57" }} minTickGap={24} />
+              <YAxis stroke="#cbbde3" fontSize={11} tickLine={false} axisLine={false} width={44} domain={["auto", "auto"]} />
+              <Tooltip formatter={(v) => [`${v} ${m.unit}`, m.label]} contentStyle={{ background: "#251a3b", border: "1px solid #3a2b57", borderRadius: 8, color: "#fff4e8", fontSize: 12 }} labelStyle={{ color: "#cbbde3" }} />
+              <Line type="monotone" dataKey="v" stroke="#ff6b1a" strokeWidth={3} dot={{ r: 2.5, fill: "#ffc93c" }} activeDot={{ r: 6, fill: "#ff2e88" }} />
             </LineChart>
           </ResponsiveContainer>
         ) : <div className="h-full grid place-items-center text-sm text-faint">Aún no hay suficientes datos para graficar.</div>}

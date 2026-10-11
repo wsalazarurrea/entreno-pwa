@@ -39,7 +39,7 @@ function SetRow({ set, label, labelCls, ph, unit, wStep, err, onLabel, onChange,
       <div
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         style={{ transform: `translateX(${dx}px)`, transition: dx ? "none" : "transform .18s", touchAction: "pan-y" }}
-        className={cx("relative grid grid-cols-[28px_minmax(0,1fr)_minmax(0,1fr)_38px] gap-1.5 items-center px-1 py-1.5", set.done ? "bg-[#e7f6f1]" : "bg-panel")}
+        className={cx("relative grid grid-cols-[28px_minmax(0,1fr)_minmax(0,1fr)_38px] gap-1.5 items-center px-1 py-1.5", set.done ? "bg-[#123d3a]" : "bg-panel")}
       >
         <button type="button" onClick={onLabel} className={cx("h-9 rounded-md font-mono font-bold text-[14px] cursor-pointer active:bg-panel2", labelCls || "text-ink")}>{label}</button>
         <StepInput decimal value={set.w} placeholder={unit === "bw" ? "0" : ph.pw} step={wStep} onChange={v => onChange({ w: v })} aria-label="peso" />
@@ -65,7 +65,7 @@ function ExerciseCard({ ex, last, sug, live, errKey, restDefault, wStep, onMenu,
       <div className="px-3.5 pt-3 pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="font-bold text-[15.5px] text-amber leading-snug">{ex.name}</div>
+            <div className="font-display text-[19px] text-amber leading-tight">{ex.name}</div>
             <div className="text-[12px] text-faint font-mono mt-0.5">meta {ex.lo}–{ex.hi} reps{ex.unit === "kg/mano" ? " · kg por mano" : ex.unit === "kg/lado" ? " · kg por lado" : ex.unit === "bw" ? " · peso corporal" : ""}</div>
           </div>
           <button type="button" onClick={onMenu} aria-label="opciones del ejercicio" className="w-9 h-9 -mr-1.5 rounded-lg grid place-items-center text-mut cursor-pointer active:bg-panel2 shrink-0"><Ellipsis size={20} /></button>
@@ -253,7 +253,7 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
       <div className="p-4 flex flex-col gap-3.5">
         <div>
           <input value={session.title} onChange={e => update(s => ({ ...s, title: e.target.value }))} placeholder="Nombre del entrenamiento"
-            className="w-full bg-transparent outline-none font-extrabold text-[22px]! tracking-tight" />
+            className="w-full bg-transparent outline-none font-display uppercase text-[28px]! text-hot" />
           <div className="flex gap-5 mt-1 text-[13px]">
             {!live && (
               <label className="flex flex-col"><span className="text-faint text-[11px]">Fecha</span>

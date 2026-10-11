@@ -5,10 +5,11 @@ import {
   sessionFromRoutine, sessionFromWorkout, emptySession, commitSession,
 } from "./lib/training.js";
 import { mergeHevyImport } from "./lib/hevyImport.js";
+import { cheerBank } from "./lib/voice.js";
 import { buildCatalog } from "./data/exercises.js";
 import { blankRoutine } from "./data/routines.js";
 import { formatClock, localDate } from "./lib/dates.js";
-import { startRun, buildPhases, phaseAt, elapsedMs, workedSec, timerSummary } from "./lib/intervals.js";
+import { startRun, buildPhases, phaseAt, elapsedMs, workedSec, timerSummary, wodResult, resultLabel } from "./lib/intervals.js";
 import { sortWorkouts } from "./lib/workouts.js";
 import { newId } from "./data/routines.js";
 import { Intervals } from "./components/Intervals.jsx";
@@ -32,11 +33,11 @@ function ResumeBar({ session, onOpen }){
   const done = session.exercises.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0);
   return (
     <button type="button" onClick={onOpen}
-      className="fixed left-3 right-3 z-20 bg-ink text-white rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-lg cursor-pointer"
+      className="fixed left-3 right-3 z-20 bg-panel2 text-ink border border-amber/60 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-[0_8px_30px_-8px_rgba(255,107,26,0.55)] cursor-pointer"
       style={{ bottom: "calc(var(--sab) + 70px)" }}>
       <div className="min-w-0 text-left">
         <div className="text-[13px] font-bold truncate">{session.title}</div>
-        <div className="text-[12px] text-white/70 font-mono">{formatClock((now - session.startedAt) / 1000)} · {done} {done === 1 ? "serie" : "series"}</div>
+        <div className="text-[12px] text-mut font-mono">{formatClock((now - session.startedAt) / 1000)} · {done} {done === 1 ? "serie" : "series"}</div>
       </div>
       <span className="flex items-center gap-1 text-[13px] font-bold text-amber shrink-0">Reanudar <ChevronUp size={16} /></span>
     </button>
@@ -75,13 +76,13 @@ export default function App(){
   useEffect(()=>{ if(timerRun) saveTimerRun(timerRun); },[timerRun]);
   useEffect(()=>{
     if(!isNative) return;
-    if(!timerRun || timerRun.pausedAt){ cancelTimerNotifications(); return; }
+    if(!timerRun || timerRun.pausedAt || timerRun.finishedAt){ cancelTimerNotifications(); return; }
     const phases = buildPhases(timerRun.timer);
     const ms = elapsedMs(timerRun);
     if(phaseAt(phases, ms).done){ cancelTimerNotifications(); return; }
     scheduleTimerNotifications(phases, ms, timerRun.timer.name);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[timerRun?.id, timerRun?.pausedAt, timerRun?.offsetMs]);
+  },[timerRun?.id, timerRun?.pausedAt, timerRun?.offsetMs, timerRun?.finishedAt]);
 
   // PWA — aviso de descanso en segundo plano: se programa al salir de la app (bloquear el teléfono o
   // cambiar de app), con el tiempo que quede en ese momento. Con la app abierta suena el
@@ -202,11 +203,12 @@ export default function App(){
   const saveTimerWorkout = (run) => {
     if(run.saved) return null;
     const phases = buildPhases(run.timer);
-    const done = phaseAt(phases, elapsedMs(run)).done;
+    const done = !!run.finishedAt || phaseAt(phases, elapsedMs(run)).done;
+    const result = wodResult(run, phases);
     const w = {
       id: newId("w"), source: "app", kind: "intervals", date: localDate(new Date(run.startedAt)), startedAt: run.startedAt,
       durationSec: workedSec(run), title: run.timer.name || "Intervalos", tag: "INT", accent: "violet", exercises: [], prs: [],
-      intervals: { summary: timerSummary(run.timer), completed: done, timer: run.timer },
+      intervals: { summary: timerSummary(run.timer), mode: run.timer.mode || "intervals", completed: done, result, resultLabel: resultLabel(run.timer, result), timer: run.timer },
     };
     setState(s => { const ns = { ...s, workouts: sortWorkouts([...s.workouts, w]) }; saveState(ns); return ns; });
     setTimerRun(r => r && r.id === run.id ? { ...r, saved: w.id } : r);
@@ -215,6 +217,11 @@ export default function App(){
   };
   const stopTimer = (mode) => {
     if(mode === "save" && timerRun && workedSec(timerRun) >= 10) saveTimerWorkout(timerRun);
+    // AMRAP: si corrigió las rondas en la pantalla final, actualizar lo guardado.
+    if(mode === "done" && timerRun?.saved && timerRun.timer.mode === "amrap"){
+      const result = wodResult(timerRun, buildPhases(timerRun.timer));
+      setState(s => { const ns = { ...s, workouts: s.workouts.map(w => w.id === timerRun.saved ? { ...w, intervals: { ...w.intervals, result, resultLabel: resultLabel(timerRun.timer, result) } } : w) }; saveState(ns); return ns; });
+    }
     setTimerRun(null); clearTimerRun(); cancelTimerNotifications();
   };
 
@@ -231,6 +238,14 @@ export default function App(){
     await persist({ ...state, routines: state.routines.filter(r=>r.id!==id) });
     setEditingRoutine(null);
   };
+
+  // Frase del día según el estilo de voz (la misma durante todo el día).
+  const dailyCheer = (() => {
+    if (!state) return "";
+    const list = cheerBank(state.voice, "work");
+    const seed = [...localDate()].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    return list.length ? list[seed % list.length] : "";
+  })();
 
   if (!state) return <div className="bg-bg text-mut min-h-screen grid place-items-center">Cargando tu historial…</div>;
 
@@ -264,10 +279,12 @@ export default function App(){
       ) : (
         <>
           {!timerEditing && <div className="px-4 pt-5 pb-1">
-            <div className="font-mono text-xs tracking-[2px] text-amber uppercase truncate">{state.programName}</div>
-            <h1 className="text-2xl font-extrabold mt-0.5 tracking-tight">
+            <div className="font-mono text-[11px] tracking-[3px] text-violet uppercase truncate">{state.programName}</div>
+            <h1 className="font-display text-[40px] leading-[1.05] mt-1 text-hot">
               {{ train:"Entrenar", intervals:"Intervalos", history:"Historial", routines:"Rutinas", settings:"Ajustes" }[tab]}
             </h1>
+            <div className="sweatband mt-2" />
+            {dailyCheer && <div className="mt-2 text-[14px] font-semibold text-coral">{dailyCheer}</div>}
           </div>}
 
           {tab==="train" && (
@@ -300,6 +317,7 @@ export default function App(){
               onChangeProgram={(programName)=>persist({ ...state, programName })}
               onChangeRest={(restSeconds)=>persist({ ...state, restSeconds })}
               onChangeHealth={(patch)=>persist({ ...state, ...patch })}
+              onChangeVoice={(voice)=>persist({ ...state, voice })}
               onImportHevy={(ws)=>persist(mergeHevyImport(state, ws))}
               onRestore={(data)=>persist(migrateState(data).state)}
               onReset={()=>persist(seedState())}
@@ -315,11 +333,12 @@ export default function App(){
         <IntervalRunner key={timerRun.id} run={timerRun}
           onChange={(fn)=>setTimerRun(r => r ? fn(r) : r)}
           onFinish={()=>saveTimerWorkout(timerRun)}
-          onStop={stopTimer} />
+          onStop={stopTimer}
+          voice={state.voice} onVoiceChange={(voice)=>setState(s => { const ns = { ...s, voice }; saveState(ns); return ns; })} />
       )}
 
       {notice && (
-        <div className="fixed left-4 right-4 z-50 bg-ink text-white text-[14px] rounded-xl px-4 py-3 shadow-lg" style={{ top: "calc(var(--sat) + 10px)" }} onClick={() => setNotice(null)}>
+        <div className="fixed left-4 right-4 z-50 bg-panel2 text-ink border border-line text-[14px] rounded-xl px-4 py-3 shadow-lg" style={{ top: "calc(var(--sat) + 10px)" }} onClick={() => setNotice(null)}>
           {notice}
         </div>
       )}

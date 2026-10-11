@@ -10,7 +10,7 @@ export function Summary({ data, onClose }){
     <div className="p-4 pb-32">
       <div className="text-center pt-4 pb-5">
         <div className="text-[40px] leading-none mb-2">💪</div>
-        <h2 className="text-[22px] font-extrabold">¡Entrenamiento guardado!</h2>
+        <h2 className="font-display text-[34px] leading-none text-hot">¡Entrenamiento guardado!</h2>
         <div className="text-mut text-[14px] mt-1">{data.title} · {formatDay(data.date)}</div>
       </div>
 

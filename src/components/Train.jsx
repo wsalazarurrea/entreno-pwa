@@ -52,7 +52,7 @@ export function Train({ state, routines, onSelect, onStartEmpty, onGoToRoutines 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <Tag accent={r.accent}>{r.tag}</Tag>
-                        <span className="font-bold text-[16px] truncate">{r.title}</span>
+                        <span className="font-display text-[22px] leading-none truncate">{r.title}</span>
                       </div>
                       <div className="text-faint text-[12.5px]">
                         {r.ex.length} ejercicios · {r.ex.reduce((acc, e) => acc + (e.sets || 0), 0)} series{lastDone ? ` · última: ${formatDay(lastDone.date)}` : ""}

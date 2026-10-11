@@ -3,11 +3,13 @@
   "appName": "Entreno",
   "webDir": "dist",
   "ios": {
-    "contentInset": "never"
+    "contentInset": "never",
+    "backgroundColor": "#0f0a1a"
   },
   "plugins": {
     "LocalNotifications": {
       "presentationOptions": []
     }
-  }
+  },
+  "backgroundColor": "#0f0a1a"
 }

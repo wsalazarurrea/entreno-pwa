@@ -25,7 +25,7 @@ export function BottomNav({ tab, onChange }){
               onClick={()=>onChange(t.key)}
               className={cx(
                 "flex-1 flex flex-col items-center gap-1 py-2.5 cursor-pointer transition-colors",
-                active ? "text-amber" : "text-mut"
+                active ? "text-amber glow-amber" : "text-faint"
               )}
             >
               <Icon size={20} strokeWidth={active ? 2.4 : 2} />

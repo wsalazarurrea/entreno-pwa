@@ -8,6 +8,7 @@ import { Card } from "./ui/Card.jsx";
 import { RestSelect } from "./ui/RestSelect.jsx";
 import { ConfirmDialog } from "./ui/Sheet.jsx";
 import { NativeSettings } from "./NativeSettings.jsx";
+import { VoiceSettings } from "./VoiceSettings.jsx";
 import { isNative, shareBackupNative } from "../lib/native.js";
 
 /* global __APP_VERSION__ -- inyectado por vite.config.js (define) */
@@ -28,7 +29,7 @@ async function shareOrDownload(filename, text){
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-export function Settings({ state, onChangeProgram, onChangeRest, onChangeHealth, onReset, onImportHevy, onRestore }){
+export function Settings({ state, onChangeProgram, onChangeRest, onChangeHealth, onChangeVoice, onReset, onImportHevy, onRestore }){
   const [status, setStatus] = useState(getSubscription() ? "activo" : "inactivo");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -125,6 +126,9 @@ export function Settings({ state, onChangeProgram, onChangeRest, onChangeHealth,
         )}
       </Card>
       </>)}
+
+      <h3 className="font-bold mb-2 px-1">Voz y sonido (intervalos y WOD)</h3>
+      <Card className="p-4 mb-5"><VoiceSettings voice={state.voice} onChange={onChangeVoice} /></Card>
 
       <h3 className="font-bold mb-2 px-1">Tus datos</h3>
       <Card className="p-4 mb-3.5 flex flex-col gap-2.5">

@@ -9,6 +9,7 @@ import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { App as CapApp } from "@capacitor/app";
 import { AppLauncher } from "@capacitor/app-launcher";
+import { KeepAwake } from "@capacitor-community/keep-awake";
 import { HealthWorkout } from "health-workout";
 
 export const isNative = Capacitor.isNativePlatform();
@@ -20,7 +21,7 @@ const hhmmss = (t) => new Date(t).toLocaleTimeString("es-CL", { hour12: false })
 export async function initNative(){
   if (!isNative) return;
   document.documentElement.classList.add("native");
-  try { await StatusBar.setStyle({ style: Style.Light }); } catch { /* opcional */ }
+  try { await StatusBar.setStyle({ style: Style.Dark }); } catch { /* opcional */ }
 }
 
 /* ---------- Avisos de descanso (locales, generados en el propio iPhone) ---------- */
@@ -61,6 +62,13 @@ export async function testNotification(seconds){
     id: TEST_ID, title: "Prueba de aviso", body: `Programado para ${hhmmss(at)}`, schedule: { at: new Date(at) },
   }] });
   return true;
+}
+
+/* ---------- Pantalla encendida durante el temporizador ---------- */
+
+export async function keepScreenOn(on){
+  if (!isNative) return;
+  try { if (on) await KeepAwake.keepAwake(); else await KeepAwake.allowSleep(); } catch { /* opcional */ }
 }
 
 /* ---------- Intervalos: un aviso por cada cambio de fase ----------

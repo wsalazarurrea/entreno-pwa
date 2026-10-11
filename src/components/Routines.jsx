@@ -43,7 +43,7 @@ export function Routines({ routines, onNew, onEdit, onChange }){
                         <button {...handleProps} aria-label="arrastrar"
                           className="text-faint cursor-grab active:cursor-grabbing touch-none shrink-0"><GripVertical size={18} /></button>
                         <Tag accent={r.accent}>{r.tag}</Tag>
-                        <span className="font-bold text-[16px] truncate">{r.title}</span>
+                        <span className="font-display text-[22px] leading-none truncate">{r.title}</span>
                       </div>
                     </div>
                     <div className="text-faint text-[12.5px] mb-3 pl-7">

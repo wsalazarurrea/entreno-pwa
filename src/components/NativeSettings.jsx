@@ -57,7 +57,7 @@ export function NativeSettings({ state, onChangeHealth }){
         <div className="flex bg-panel2 rounded-xl p-1">
           {[["atajo", "Atajo de iOS"], ["directo", "Directo"]].map(([k, l]) => (
             <button key={k} type="button" onClick={() => onChangeHealth({ healthMode: k })}
-              className={cx("flex-1 py-2 rounded-lg text-[13.5px] font-semibold cursor-pointer", mode === k ? "bg-panel text-ink shadow-sm" : "text-mut")}>{l}</button>
+              className={cx("flex-1 py-2 rounded-lg text-[13.5px] font-semibold cursor-pointer", mode === k ? "bg-amber text-white shadow-sm" : "text-mut")}>{l}</button>
           ))}
         </div>
 

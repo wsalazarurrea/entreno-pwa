@@ -1,5 +1,12 @@
-/* Pitidos y voz para el temporizador de intervalos. iOS sólo deja sonar audio y
-   voz después de un toque del usuario: llamar unlockSound() dentro de un onClick. */
+/* Pitidos y voz del temporizador.
+   - App de iPhone: voz nativa de iOS (AVSpeechSynthesizer, plugin text-to-speech). Suena
+     aunque el interruptor de silencio esté activado (sesión de audio "playback", AppDelegate).
+   - Web: Web Audio + speechSynthesis del navegador (en iPhone respetan el modo silencio).
+   iOS sólo deja sonar audio/voz web después de un toque: llamar unlockSound() en un onClick. */
+
+import { TextToSpeech } from "@capacitor-community/text-to-speech";
+import { isNative } from "./native.js";
+import { voiceConfig } from "./voice.js";
 
 let ctx = null;
 
@@ -7,11 +14,12 @@ export function unlockSound(){
   try {
     if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; ctx = new AC(); }
     if (ctx.state === "suspended") ctx.resume();
-    // Un buffer vacío "desbloquea" la salida de audio en iOS.
     const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource();
     s.buffer = b; s.connect(ctx.destination); s.start(0);
   } catch { /* sin audio */ }
-  try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; window.speechSynthesis.speak(u); } } catch { /* sin voz */ }
+  if (!isNative) {
+    try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; window.speechSynthesis.speak(u); } } catch { /* sin voz */ }
+  }
 }
 
 export function resumeSound(){ try { if (ctx?.state === "suspended") ctx.resume(); } catch { /* */ } }
@@ -38,12 +46,54 @@ export function cue(kind){
   } catch { /* sin audio */ }
 }
 
-export function speak(text){
+let webVoices = [];
+function loadWebVoices(){ try { webVoices = window.speechSynthesis?.getVoices() || []; } catch { webVoices = []; } }
+if (!isNative && typeof window !== "undefined" && "speechSynthesis" in window) {
+  loadWebVoices();
+  window.speechSynthesis.onvoiceschanged = loadWebVoices;
+}
+
+let nativeEs = null;
+if (isNative) spanishLanguagesRaw().then(l => { nativeEs = l; }).catch(() => {});
+
+async function spanishLanguagesRaw(){
+  const langs = (await TextToSpeech.getSupportedLanguages()).languages || [];
+  return [...new Set(langs.filter(l => /^es[-_]/i.test(l) || l === "es").map(l => l.replace("_", "-")))].sort();
+}
+
+/** Habla `text` con la configuración de voz (idioma, velocidad, volumen). Interrumpe lo anterior. */
+export function speak(text, cfgIn){
+  const cfg = voiceConfig(cfgIn);
+  if (!text) return;
+  if (isNative) {
+    // Si el iPhone no tiene la variante elegida, usar otra de español (nunca la voz en inglés por defecto).
+    const lang = nativeEs && !nativeEs.includes(cfg.lang) ? (nativeEs[0] || cfg.lang) : cfg.lang;
+    TextToSpeech.speak({ text, lang, rate: cfg.rate, volume: cfg.volume, category: "playback", queueStrategy: 0 }).catch(() => {});
+    return;
+  }
   try {
-    if (!("speechSynthesis" in window) || !text) return;
+    if (!("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "es-ES"; u.rate = 1.05;
+    u.lang = cfg.lang; u.rate = cfg.rate; u.volume = cfg.volume;
+    const v = webVoices.find(x => x.lang === cfg.lang) || webVoices.find(x => x.lang?.startsWith(cfg.lang.slice(0, 2)));
+    if (v) u.voice = v;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   } catch { /* sin voz */ }
+}
+
+export function stopSpeaking(){
+  if (isNative) { TextToSpeech.stop().catch(() => {}); return; }
+  try { window.speechSynthesis?.cancel(); } catch { /* */ }
+}
+
+/** Variantes de español disponibles en este dispositivo (p. ej. es-ES, es-MX). */
+export async function spanishLanguages(){
+  let langs = [];
+  try {
+    if (isNative) langs = (await TextToSpeech.getSupportedLanguages()).languages || [];
+    else { loadWebVoices(); langs = webVoices.map(v => v.lang); }
+  } catch { /* */ }
+  const es = [...new Set(langs.filter(l => /^es[-_]/i.test(l) || l === "es").map(l => l.replace("_", "-")))].sort();
+  return es.length ? es : ["es-ES", "es-MX", "es-US"];
 }

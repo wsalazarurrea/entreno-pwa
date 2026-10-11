@@ -13,7 +13,7 @@ export function Routines({ routines, onNew, onEdit, onChange }){
   return (
     <div className="p-4 pb-24">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-xl font-bold">Mis rutinas</h2>
+        <h2 className="text-[15px] font-bold text-mut">{routines.length} {routines.length === 1 ? "rutina" : "rutinas"}</h2>
         <button onClick={onNew}
           className="flex items-center gap-1.5 bg-amber text-white rounded-lg px-3 py-2 font-bold text-sm cursor-pointer">
           <Plus size={16} /> Nueva

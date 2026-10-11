@@ -1,4 +1,5 @@
 import { cx } from "../../lib/cx.js";
+import { localDate } from "../../lib/dates.js";
 
 /** Grilla de constancia (últimas `weeks` semanas, 7 días por columna, terminando hoy). */
 export function StreakCalendar({ trainedDates, weeks=8 }){
@@ -7,7 +8,7 @@ export function StreakCalendar({ trainedDates, weeks=8 }){
   const days = [];
   for (let i = totalDays-1; i>=0; i--){
     const d = new Date(today); d.setDate(d.getDate()-i);
-    const iso = d.toISOString().slice(0,10);
+    const iso = localDate(d);
     days.push({ iso, trained: trainedDates.has(iso), isToday: i===0 });
   }
   const cols = [];

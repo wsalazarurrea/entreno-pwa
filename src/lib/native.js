@@ -63,6 +63,49 @@ export async function testNotification(seconds){
   return true;
 }
 
+/* ---------- Intervalos: un aviso por cada cambio de fase ----------
+   Se programan todos al iniciar/reanudar/saltar y se cancelan al pausar o terminar.
+   En primer plano no se muestran (capacitor.config: presentationOptions []), porque
+   ahí suenan los pitidos y la voz de la app; con el teléfono bloqueado sí. */
+
+const TIMER_BASE = 2000;
+const TIMER_MAX = 60; // iOS admite 64 avisos locales pendientes por app
+
+export async function cancelTimerNotifications(){
+  if (!isNative) return;
+  try {
+    await LocalNotifications.cancel({ notifications: Array.from({ length: TIMER_MAX }, (_, i) => ({ id: TIMER_BASE + i })) });
+  } catch { /* nada que cancelar */ }
+}
+
+/** phases: buildPhases(); elapsedMsNow: posición actual; name: nombre del temporizador. */
+export async function scheduleTimerNotifications(phases, elapsedMsNow, name){
+  if (!isNative) return;
+  try {
+    await cancelTimerNotifications();
+    if (!(await ensureNotificationPermission())) return;
+    const now = Date.now();
+    const total = phases.reduce((a, p) => a + p.sec, 0);
+    const rounds = Math.max(0, ...phases.map(p => p.round || 0));
+    const list = [];
+    for (const p of phases) {
+      const at = now + (p.start * 1000 - elapsedMsNow);
+      if (at <= now + 800) continue;
+      if (list.length >= TIMER_MAX - 1) break;
+      const mm = `${Math.floor(p.sec / 60)}:${String(p.sec % 60).padStart(2, "0")}`;
+      list.push({
+        id: TIMER_BASE + list.length,
+        title: `${p.kind === "work" ? "💪" : p.kind === "rest" ? "😮‍💨" : "⏱"} ${p.label} · ${mm}`,
+        body: [name, p.round ? `Ronda ${p.round}/${rounds}` : null].filter(Boolean).join(" · "),
+        schedule: { at: new Date(at), allowWhileIdle: true },
+      });
+    }
+    const endAt = now + (total * 1000 - elapsedMsNow);
+    if (endAt > now + 800) list.push({ id: TIMER_BASE + list.length, title: "🏁 ¡Intervalos terminados!", body: name || "", schedule: { at: new Date(endAt), allowWhileIdle: true } });
+    if (list.length) await LocalNotifications.schedule({ notifications: list });
+  } catch (e) { console.warn("Avisos de intervalos:", e); }
+}
+
 /* ---------- Apple Salud ---------- */
 
 export async function healthAvailable(){

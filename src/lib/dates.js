@@ -54,6 +54,7 @@ export function formatClock(sec){
 /** 3720 → "1 h 2 min"; 540 → "9 min". */
 export function formatDuration(sec){
   if (sec == null) return "";
+  if (sec < 60) return `${Math.round(sec)} s`;
   const m = Math.round(sec / 60);
   return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
 }

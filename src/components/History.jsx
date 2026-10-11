@@ -18,6 +18,7 @@ function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise, onSendToHe
   const [health, setHealth] = useState(null); // null | "sending" | { ok } | { error }
   const sendHealth = async () => { setHealth("sending"); const r = await onSendToHealth(w); setHealth(r?.pending ? null : r); };
   const st = workoutStats(w);
+  const iv = w.kind === "intervals" ? w.intervals : null;
   const prs = w.prs?.length || 0;
   return (
     <Card className="mb-2.5 overflow-hidden">
@@ -34,7 +35,13 @@ function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise, onSendToHe
           {open ? <ChevronDown size={18} className="text-faint shrink-0 mt-1" /> : <ChevronRight size={18} className="text-faint shrink-0 mt-1" />}
         </div>
         <div className="flex gap-5 mt-2.5 text-[12.5px]">
-          <div><div className="text-faint text-[11px]">Volumen</div><div className="font-mono font-semibold">{Math.round(st.volume).toLocaleString("es")} kg</div></div>
+          {iv ? (
+            <>
+              <div><div className="text-faint text-[11px]">Duración</div><div className="font-mono font-semibold">{formatDuration(w.durationSec) || "—"}</div></div>
+              <div><div className="text-faint text-[11px]">Intervalos</div><div className="font-mono font-semibold">{iv.summary}</div></div>
+              {!iv.completed && <div><div className="text-faint text-[11px]">Estado</div><div className="font-semibold text-mut">Detenido</div></div>}
+            </>
+          ) : <div><div className="text-faint text-[11px]">Volumen</div><div className="font-mono font-semibold">{Math.round(st.volume).toLocaleString("es")} kg</div></div>}
           {st.sets > 0 && <div><div className="text-faint text-[11px]">Series</div><div className="font-mono font-semibold">{st.sets}</div></div>}
           {prs > 0 && <div><div className="text-faint text-[11px]">Récords</div><div className="font-mono font-semibold text-teal flex items-center gap-1"><Trophy size={13} />{prs}</div></div>}
         </div>
@@ -72,9 +79,9 @@ function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise, onSendToHe
                   {health?.error && <div className="mt-1 text-[12.5px] text-coral">{health.error}</div>}
                 </div>
           )}
-          <div className="grid grid-cols-3 gap-2 pt-1">
+          <div className={cx("grid gap-2 pt-1", iv ? "grid-cols-2" : "grid-cols-3")}>
             <button type="button" onClick={onRepeat} className="py-2.5 rounded-lg bg-amber text-white text-[13px] font-bold flex items-center justify-center gap-1.5 cursor-pointer"><Repeat size={14} /> Repetir</button>
-            <button type="button" onClick={onEdit} className="py-2.5 rounded-lg bg-panel2 text-ink text-[13px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer"><Pencil size={14} /> Editar</button>
+            {!iv && <button type="button" onClick={onEdit} className="py-2.5 rounded-lg bg-panel2 text-ink text-[13px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer"><Pencil size={14} /> Editar</button>}
             <button type="button" onClick={onDelete} className="py-2.5 rounded-lg border border-coral/40 text-coral text-[13px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer"><Trash2 size={14} /> Eliminar</button>
           </div>
         </div>

@@ -1,8 +1,9 @@
-import { Dumbbell, History, ClipboardList, Settings } from "lucide-react";
+import { Dumbbell, Timer, History, ClipboardList, Settings } from "lucide-react";
 import { cx } from "../lib/cx.js";
 
 const TABS = [
   { key:"train", label:"Entrenar", icon:Dumbbell },
+  { key:"intervals", label:"Intervalos", icon:Timer },
   { key:"history", label:"Historial", icon:History },
   { key:"routines", label:"Rutinas", icon:ClipboardList },
   { key:"settings", label:"Ajustes", icon:Settings },

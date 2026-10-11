@@ -1,15 +1,20 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronUp } from "lucide-react";
 import {
-  loadState, saveState, seedState, migrateState, loadActive, saveActive, clearActive,
+  loadState, saveState, seedState, migrateState, loadActive, saveActive, clearActive, loadTimerRun, saveTimerRun, clearTimerRun,
   sessionFromRoutine, sessionFromWorkout, emptySession, commitSession,
 } from "./lib/training.js";
 import { mergeHevyImport } from "./lib/hevyImport.js";
 import { buildCatalog } from "./data/exercises.js";
 import { blankRoutine } from "./data/routines.js";
-import { formatClock } from "./lib/dates.js";
+import { formatClock, localDate } from "./lib/dates.js";
+import { startRun, buildPhases, phaseAt, elapsedMs, workedSec, timerSummary } from "./lib/intervals.js";
+import { sortWorkouts } from "./lib/workouts.js";
+import { newId } from "./data/routines.js";
+import { Intervals } from "./components/Intervals.jsx";
+import { IntervalRunner } from "./components/IntervalRunner.jsx";
 import { initPush, scheduleRest } from "./lib/push-client.js";
-import { isNative, initNative, syncRestNotification, saveWorkoutToHealth, sendWorkoutViaShortcut, onShortcutReturn } from "./lib/native.js";
+import { isNative, initNative, syncRestNotification, saveWorkoutToHealth, sendWorkoutViaShortcut, onShortcutReturn, scheduleTimerNotifications, cancelTimerNotifications } from "./lib/native.js";
 import { BottomNav } from "./components/BottomNav.jsx";
 import { Train } from "./components/Train.jsx";
 import { WorkoutLogger } from "./components/WorkoutLogger.jsx";
@@ -46,6 +51,8 @@ export default function App(){
   const [editingRoutine, setEditingRoutine] = useState(null);
   const [summary, setSummary] = useState(null);
   const [pendingStart, setPendingStart] = useState(null); // sesión a iniciar si ya hay una en curso
+  const [timerRun, setTimerRun] = useState(null);         // temporizador de intervalos en curso
+  const [timerEditing, setTimerEditing] = useState(false);
 
   useEffect(()=>{ (async()=>{
     let s = await loadState();
@@ -54,6 +61,8 @@ export default function App(){
     const a = await loadActive();
     setState(s);
     if(a){ setSession(a); setMinimized(false); }
+    const tr = await loadTimerRun();
+    if(tr) setTimerRun(tr);
   })(); },[]);
   useEffect(()=>{ if(isNative) initNative(); else initPush().catch(()=>{}); },[]);
   // App nativa: el aviso de descanso es local y se reprograma con cada cambio (−15/+15/Omitir).
@@ -61,6 +70,18 @@ export default function App(){
   useEffect(()=>{ if(isNative) syncRestNotification(liveRestEnd, session?.restLabel); },[liveRestEnd, session?.restLabel]);
   // Cada cambio del entrenamiento en curso se guarda al instante (sobrevive a que iOS cierre la app).
   useEffect(()=>{ if(session) saveActive(session); },[session]);
+
+  // Intervalos: se guarda en cada cambio y, en la app nativa, se programa un aviso por fase.
+  useEffect(()=>{ if(timerRun) saveTimerRun(timerRun); },[timerRun]);
+  useEffect(()=>{
+    if(!isNative) return;
+    if(!timerRun || timerRun.pausedAt){ cancelTimerNotifications(); return; }
+    const phases = buildPhases(timerRun.timer);
+    const ms = elapsedMs(timerRun);
+    if(phaseAt(phases, ms).done){ cancelTimerNotifications(); return; }
+    scheduleTimerNotifications(phases, ms, timerRun.timer.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[timerRun?.id, timerRun?.pausedAt, timerRun?.offsetMs]);
 
   // PWA — aviso de descanso en segundo plano: se programa al salir de la app (bloquear el teléfono o
   // cambiar de app), con el tiempo que quede en ese momento. Con la app abierta suena el
@@ -175,6 +196,28 @@ export default function App(){
     setNotice(health.ok ? "❤️ Guardado en Apple Salud" : health.error);
     setTimeout(() => setNotice(null), 5000);
   }), []);
+  /* ---- Intervalos ---- */
+  const startTimer = (t) => { setTimerRun(startRun(t)); window.scrollTo(0, 0); };
+  /** Guarda en el historial lo hecho con el temporizador (una sola vez por ejecución). */
+  const saveTimerWorkout = (run) => {
+    if(run.saved) return null;
+    const phases = buildPhases(run.timer);
+    const done = phaseAt(phases, elapsedMs(run)).done;
+    const w = {
+      id: newId("w"), source: "app", kind: "intervals", date: localDate(new Date(run.startedAt)), startedAt: run.startedAt,
+      durationSec: workedSec(run), title: run.timer.name || "Intervalos", tag: "INT", accent: "violet", exercises: [], prs: [],
+      intervals: { summary: timerSummary(run.timer), completed: done, timer: run.timer },
+    };
+    setState(s => { const ns = { ...s, workouts: sortWorkouts([...s.workouts, w]) }; saveState(ns); return ns; });
+    setTimerRun(r => r && r.id === run.id ? { ...r, saved: w.id } : r);
+    if(isNative && state.healthSync) sendToHealth(w);
+    return w;
+  };
+  const stopTimer = (mode) => {
+    if(mode === "save" && timerRun && workedSec(timerRun) >= 10) saveTimerWorkout(timerRun);
+    setTimerRun(null); clearTimerRun(); cancelTimerNotifications();
+  };
+
   const discard = () => { const wasEdit = session?.mode === "edit"; endSession(); if(wasEdit) setTab("history"); };
 
   const saveRoutine = async(routine)=>{
@@ -220,12 +263,12 @@ export default function App(){
         />
       ) : (
         <>
-          <div className="px-4 pt-5 pb-1">
+          {!timerEditing && <div className="px-4 pt-5 pb-1">
             <div className="font-mono text-xs tracking-[2px] text-amber uppercase truncate">{state.programName}</div>
             <h1 className="text-2xl font-extrabold mt-0.5 tracking-tight">
-              {{ train:"Entrenar", history:"Historial", routines:"Rutinas", settings:"Ajustes" }[tab]}
+              {{ train:"Entrenar", intervals:"Intervalos", history:"Historial", routines:"Rutinas", settings:"Ajustes" }[tab]}
             </h1>
-          </div>
+          </div>}
 
           {tab==="train" && (
             <Train state={state} routines={state.routines}
@@ -236,8 +279,12 @@ export default function App(){
           {tab==="history" && (
             <History state={state} catalog={catalog} onSendToHealth={isNative ? sendToHealth : null}
               onEdit={(w)=>start(sessionFromWorkout(w, state, "edit"))}
-              onRepeat={(w)=>start(sessionFromWorkout(w, state, "live"))}
+              onRepeat={(w)=> w.kind === "intervals" ? startTimer(w.intervals.timer) : start(sessionFromWorkout(w, state, "live"))}
               onDelete={(id)=>persist({ ...state, workouts: state.workouts.filter(w=>w.id!==id) })} />
+          )}
+          {tab==="intervals" && (
+            <Intervals timers={state.timers} onStart={startTimer} onEditing={setTimerEditing}
+              onChange={(timers)=>persist({ ...state, timers })} />
           )}
           {tab==="routines" && (
             <Routines
@@ -259,9 +306,16 @@ export default function App(){
             />
           )}
 
-          {session && session.mode === "live" && <ResumeBar session={session} onOpen={()=>{ setMinimized(false); window.scrollTo(0, 0); }} />}
-          <BottomNav tab={tab} onChange={setTab} />
+          {session && session.mode === "live" && !timerEditing && <ResumeBar session={session} onOpen={()=>{ setMinimized(false); window.scrollTo(0, 0); }} />}
+          {!timerEditing && <BottomNav tab={tab} onChange={(t)=>{ setTab(t); window.scrollTo(0, 0); }} />}
         </>
+      )}
+
+      {timerRun && (
+        <IntervalRunner key={timerRun.id} run={timerRun}
+          onChange={(fn)=>setTimerRun(r => r ? fn(r) : r)}
+          onFinish={()=>saveTimerWorkout(timerRun)}
+          onStop={stopTimer} />
       )}
 
       {notice && (

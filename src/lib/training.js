@@ -3,6 +3,7 @@ import { SEED } from "../data/seedHistory.js";
 import { DEFAULT_ROUTINES, cloneRoutines, newId } from "../data/routines.js";
 import { findExercise, unitForEquipment } from "../data/exercises.js";
 import { localDate } from "./dates.js";
+import { presetTimers } from "./intervals.js";
 import {
   buildSeedWorkouts, migrateV1Workouts, sortWorkouts, lastPerformance, isWorking,
   detectPRs, workoutStats, normName,
@@ -14,6 +15,7 @@ export const STATE_VERSION = 2;
 
 const STATE_KEY = "pt_state_v1";
 const ACTIVE_KEY = "pt_active_v1";
+const TIMER_RUN_KEY = "pt_timer_run_v1";
 
 export async function loadState(){ try{ const r=await storage.get(STATE_KEY); return r?JSON.parse(r.value):null; }catch{ return null; } }
 export async function saveState(s){ try{ await storage.set(STATE_KEY, JSON.stringify(s)); }catch(e){ console.error(e); } }
@@ -24,11 +26,16 @@ export async function loadActive(){ try{ const r=await storage.get(ACTIVE_KEY); 
 export async function saveActive(a){ try{ await storage.set(ACTIVE_KEY, JSON.stringify(a)); }catch(e){ console.error(e); } }
 export async function clearActive(){ try{ await storage.delete(ACTIVE_KEY); }catch(e){ console.error(e); } }
 
+/* Temporizador de intervalos en curso (mismo motivo: sobrevivir a que iOS cierre la app). */
+export async function loadTimerRun(){ try{ const r=await storage.get(TIMER_RUN_KEY); return r?JSON.parse(r.value):null; }catch{ return null; } }
+export async function saveTimerRun(run){ try{ await storage.set(TIMER_RUN_KEY, JSON.stringify(run)); }catch(e){ console.error(e); } }
+export async function clearTimerRun(){ try{ await storage.delete(TIMER_RUN_KEY); }catch(e){ console.error(e); } }
+
 export function seedState(){
   const routines = cloneRoutines(DEFAULT_ROUTINES);
   return {
     version: STATE_VERSION, programName: DEFAULT_PROGRAM_NAME, restSeconds: DEFAULT_REST_SECONDS,
-    routines, workouts: sortWorkouts(buildSeedWorkouts(SEED, routines)), customExercises: [],
+    routines, workouts: sortWorkouts(buildSeedWorkouts(SEED, routines)), customExercises: [], timers: presetTimers(),
   };
 }
 
@@ -50,6 +57,7 @@ export function migrateState(s){
   }
   if(!Array.isArray(n.workouts)){ n.workouts = []; changed = true; }
   if(!Array.isArray(n.customExercises)){ n.customExercises = []; changed = true; }
+  if(!Array.isArray(n.timers)){ n.timers = presetTimers(); changed = true; }
   return { state:n, changed };
 }
 

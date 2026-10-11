@@ -38,3 +38,19 @@ en **Apple Salud / Fitness** como "Fuerza tradicional" (plugin propio en `native
 - **Pasar los datos desde la PWA:** en la web, Ajustes → Exportar respaldo; en la app, Ajustes → Restaurar respaldo.
 - **Icono:** `design/icon.svg` → `node scripts/render-icons.cjs` (requiere `playwright-core` y Edge/Chrome).
 - Tras cambiar dependencias de Capacitor: `npm run build && npx cap sync ios`.
+
+## Voz del temporizador ("Harry", ElevenLabs)
+
+Los anuncios del temporizador (cuenta regresiva, rondas, fases, avisos y frases de ánimo) son audios
+grabados una sola vez con ElevenLabs y guardados en `public/voice/harry/` (funcionan sin internet; la PWA
+los guarda en caché la primera vez). El catálogo de frases está en `src/data/voiceHarry.js`; el reproductor
+(`src/lib/clips.js`) recorta el silencio y encadena los audios.
+
+Para agregar o cambiar frases: editar `src/data/voiceHarry.js` y generar sólo lo que falte:
+
+```
+ELEVENLABS_API_KEY=sk_... node scripts/generate-voice.cjs        # o --key-file ruta
+node scripts/generate-voice.cjs --key-file ruta --only ph-work --force   # regenerar uno
+```
+
+La clave nunca va al repositorio. En Ajustes se puede volver a la voz del sistema (español).

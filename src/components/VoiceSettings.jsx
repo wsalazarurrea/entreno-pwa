@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
 import { voiceConfig, cheer } from "../lib/voice.js";
+import { sampleClips } from "../lib/voicepack.js";
+import { playClips } from "../lib/clips.js";
 import { speak, unlockSound, cue, spanishLanguages } from "../lib/sound.js";
 import { cx } from "../lib/cx.js";
 
@@ -39,8 +41,10 @@ export function VoiceSettings({ voice, onChange }){
   const [langs, setLangs] = useState([cfg.lang]);
   useEffect(() => { spanishLanguages().then(l => setLangs(l.includes(cfg.lang) ? l : [cfg.lang, ...l])); }, [cfg.lang]);
   const toggleWarning = (sec, on) => set({ warnings: on ? [...new Set([...cfg.warnings, sec])].sort((a, b) => b - a) : cfg.warnings.filter(w => w !== sec) });
+  const harry = cfg.engine === "harry";
   const test = () => {
     unlockSound();
+    if (harry) { if (cfg.beeps) cue("go"); if (cfg.enabled) setTimeout(() => playClips(sampleClips(cfg), { volume: cfg.volume }), 450); return; }
     if (cfg.beeps) cue("go");
     if (cfg.enabled) setTimeout(() => speak(["Trabajo. Ronda 1 de 8.", cheer(cfg, "work"), "Quedan 30 segundos.", cheer(cfg, "push"), "3, 2, 1"].filter(Boolean).join(" "), cfg), 450);
   };
@@ -48,14 +52,19 @@ export function VoiceSettings({ voice, onChange }){
   return (
     <div className="flex flex-col divide-y divide-line">
       <div className="pb-2">
+        <Segmented label="Voz" value={cfg.engine} onChange={v => set({ engine: v })}
+          options={[["harry", "Harry · inglés 🎙️"], ["system", "Del sistema · español"]]} />
+        <div className="text-[12px] text-faint mb-1">{harry ? "Voz humana grabada (ElevenLabs). Funciona sin internet." : "Voz sintética del teléfono, en español."}</div>
         <Toggle label="Voz" hint="Anuncia fases, rondas y tiempos en voz alta." checked={cfg.enabled} onChange={v => set({ enabled: v })} />
         <Toggle label="Pitidos" checked={cfg.beeps} onChange={v => set({ beeps: v })} />
       </div>
 
       <div className="py-2">
         <Segmented label="Estilo de la voz" value={cfg.style} onChange={v => set({ style: v })}
-          options={[["neutro", "Neutro"], ["chileno", "Chileno 🇨🇱"], ["garabatos", "Con garabatos 🤬"]]} />
-        <div className="text-[12px] text-faint">{cfg.style === "garabatos" ? "«¡Vamos, mierda!», «¡Tú puedes, concha de tu madre!», «¡Aguanta, conchetumare!»" : cfg.style === "chileno" ? "«¡Dale po!», «¡No aflojí!», «¡La raja!», «¡Saca la garra!»" : "Sólo anuncia fases y tiempos."}</div>
+          options={harry ? [["neutro", "Sin frases"], ["chileno", "Motivador"], ["garabatos", "Con garabatos 🤬"]] : [["neutro", "Neutro"], ["chileno", "Chileno 🇨🇱"], ["garabatos", "Con garabatos 🤬"]]} />
+        <div className="text-[12px] text-faint">{harry
+          ? (cfg.style === "garabatos" ? "«Let's fucking go!», «Don't you fucking quit!», «Hell yeah, you're a fucking beast!»" : cfg.style === "chileno" ? "«Let's go!», «Push it!», «Don't quit now!», «You're a beast!»" : "Sólo anuncia fases y tiempos.")
+          : (cfg.style === "garabatos" ? "«¡Vamos, mierda!», «¡Tú puedes, concha de tu madre!», «¡Aguanta, conchetumare!»" : cfg.style === "chileno" ? "«¡Dale po!», «¡No aflojí!», «¡La raja!», «¡Saca la garra!»" : "Sólo anuncia fases y tiempos.")}</div>
       </div>
 
       <div className="py-2">
@@ -90,17 +99,17 @@ export function VoiceSettings({ voice, onChange }){
       </div>
 
       <div className="pt-2 flex flex-col gap-2.5">
-        <div>
+        {!harry && <div>
           <div className="text-[14.5px] text-ink mb-1.5">Voz en español de</div>
           <select value={cfg.lang} onChange={e => set({ lang: e.target.value })}
             className="w-full px-3 py-2.5 bg-panel border border-line rounded-xl text-ink outline-none focus:border-amber">
             {langs.map(l => <option key={l} value={l}>{LANG_NAME[l] ? `${LANG_NAME[l]} (${l})` : l}</option>)}
           </select>
-        </div>
-        <label className="block">
+        </div>}
+        {!harry && <label className="block">
           <span className="flex justify-between text-[14.5px] text-ink"><span>Velocidad</span><span className="font-mono text-mut">{cfg.rate.toFixed(1)}×</span></span>
           <input type="range" min="0.6" max="1.6" step="0.1" value={cfg.rate} onChange={e => set({ rate: Number(e.target.value) })} className="w-full accent-[#ef6c2e]" />
-        </label>
+        </label>}
         <label className="block">
           <span className="flex justify-between text-[14.5px] text-ink"><span>Volumen de la voz</span><span className="font-mono text-mut">{Math.round(cfg.volume * 100)}%</span></span>
           <input type="range" min="0.2" max="1" step="0.1" value={cfg.volume} onChange={e => set({ volume: Number(e.target.value) })} className="w-full accent-[#ef6c2e]" />

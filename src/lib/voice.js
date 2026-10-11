@@ -2,6 +2,7 @@
    Función pura: recibe la situación del segundo actual y la configuración del usuario. */
 
 export const DEFAULT_VOICE = {
+  engine: "harry",      // "harry" (audios de ElevenLabs, inglés) | "system" (voz del dispositivo, español)
   enabled: true,        // voz
   beeps: true,          // pitidos
   countdown: "voz",     // cuenta regresiva final: "voz" | "pitidos" | "ambos" | "no"
@@ -81,7 +82,8 @@ export function sayDuration(sec){
 
 /**
  * ctx = { phase, remaining (s), elapsed (s en la fase), started (la fase recién empieza), mode, rounds }
- * Devuelve { speech?, beep? } con lo que corresponde a este segundo.
+ * Devuelve { speech?, beep?, event? }: el texto en español (voz del sistema) y el evento
+ * abstracto que usa el paquete de audios grabados (lib/voicepack.js).
  */
 export function cueFor(ctx, cfgIn){
   const cfg = voiceConfig(cfgIn);
@@ -90,8 +92,11 @@ export function cueFor(ctx, cfgIn){
   const beep = (b) => (cfg.beeps ? b : undefined);
 
   if (started) {
-    let speech;
+    let speech, event;
     if (cfg.phaseNames) {
+      const lr = phase.kind === "work" && phase.round && rounds > 1 && phase.round === rounds;
+      event = { type: "start", phase, mode, lastRound: lr, round: phase.round, rounds,
+        showRound: !!(cfg.rounds && phase.round && phase.kind === "work" && rounds > 1) };
       if (phase.open) speech = join(mode === "amrap" ? `AMRAP de ${sayDuration(phase.sec)}.` : "Por tiempo.", cheer(cfg, "open") || "¡Vamos!");
       else {
         const lastRound = phase.kind === "work" && phase.round && rounds > 1 && phase.round === rounds;
@@ -101,13 +106,15 @@ export function cueFor(ctx, cfgIn){
         else if (phase.kind === "rest" && phase.sec >= 10) speech = join(speech, cheer(cfg, "rest"));
       }
     }
-    return { speech: say(speech), beep: beep(phase.kind === "work" ? "go" : "rest") };
+    return { speech: say(speech), event: cfg.enabled ? event : undefined, beep: beep(phase.kind === "work" ? "go" : "rest") };
   }
 
   const countUp = phase.open && mode === "fortime";
   if (cfg.countdown !== "no" && remaining >= 1 && remaining <= cfg.countdownFrom) {
+    const spoken = cfg.countdown === "voz" || cfg.countdown === "ambos" ? say(String(remaining)) : undefined;
     return {
-      speech: cfg.countdown === "voz" || cfg.countdown === "ambos" ? say(String(remaining)) : undefined,
+      speech: spoken,
+      event: spoken ? { type: "count", n: remaining } : undefined,
       // Si la voz está apagada, la cuenta "por voz" pasa a pitidos para no quedar en silencio.
       beep: cfg.countdown === "pitidos" || cfg.countdown === "ambos" || !cfg.enabled ? beep("tick") : undefined,
     };
@@ -115,17 +122,17 @@ export function cueFor(ctx, cfgIn){
 
   const longEnough = phase.sec >= remaining + 5;
   if (cfg.warnings.includes(remaining) && remaining > cfg.countdownFrom && longEnough) {
-    return { speech: say(join(remaining === 60 ? "Queda un minuto." : `Quedan ${sayDuration(remaining)}.`, cheer(cfg, "push"))) };
+    return { speech: say(join(remaining === 60 ? "Queda un minuto." : `Quedan ${sayDuration(remaining)}.`, cheer(cfg, "push"))), event: cfg.enabled ? { type: "warn", sec: remaining } : undefined };
   }
 
   if (cfg.halfway && !phase.open && phase.sec >= 30 && elapsed === Math.floor(phase.sec / 2)) {
-    return { speech: say(join("Mitad.", cheer(cfg, "push"))) };
+    return { speech: say(join("Mitad.", cheer(cfg, "push"))), event: cfg.enabled ? { type: "half" } : undefined };
   }
 
   const timed = phase.open || phase.sec >= 180;
   if (cfg.every > 0 && timed && remaining > cfg.countdownFrom && !cfg.warnings.includes(remaining)) {
-    if (countUp && elapsed > 0 && elapsed % cfg.every === 0) return { speech: say(join(elapsed === 60 ? "Va un minuto." : `Van ${sayDuration(elapsed)}.`, cheer(cfg, "work"))) };
-    if (!countUp && remaining % cfg.every === 0 && remaining < phase.sec) return { speech: say(join(`Quedan ${sayDuration(remaining)}.`, cheer(cfg, "push"))) };
+    if (countUp && elapsed > 0 && elapsed % cfg.every === 0) return { speech: say(join(elapsed === 60 ? "Va un minuto." : `Van ${sayDuration(elapsed)}.`, cheer(cfg, "work"))), event: cfg.enabled ? { type: "in", sec: elapsed } : undefined };
+    if (!countUp && remaining % cfg.every === 0 && remaining < phase.sec) return { speech: say(join(`Quedan ${sayDuration(remaining)}.`, cheer(cfg, "push"))), event: cfg.enabled ? { type: "left", sec: remaining } : undefined };
   }
   return {};
 }

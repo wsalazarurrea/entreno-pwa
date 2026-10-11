@@ -22,6 +22,12 @@ export function unlockSound(){
   }
 }
 
+/** Contexto de audio compartido (pitidos y audios grabados). */
+export function getAudioContext(){
+  try { if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; ctx = new AC(); } } catch { return null; }
+  return ctx;
+}
+
 export function resumeSound(){ try { if (ctx?.state === "suspended") ctx.resume(); } catch { /* */ } }
 
 function tone(freq, dur, at = 0, vol = 0.5){

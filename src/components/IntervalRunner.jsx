@@ -4,6 +4,8 @@ import { buildPhases, totalSec, runStatus, pauseRun, resumeRun, skipPhase, backP
 import { cue, speak, resumeSound, unlockSound, stopSpeaking } from "../lib/sound.js";
 import { cueFor, voiceConfig, finishSpeech, roundSpeech } from "../lib/voice.js";
 import { keepScreenOn } from "../lib/native.js";
+import { clipsFor, finishClips, roundClips, preloadKeys } from "../lib/voicepack.js";
+import { playClips, preloadClips, stopClips } from "../lib/clips.js";
 import { ConfirmDialog, Sheet } from "./ui/Sheet.jsx";
 import { VoiceSettings } from "./VoiceSettings.jsx";
 
@@ -30,6 +32,11 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
   const [confirm, setConfirm] = useState(false);
   const [settings, setSettings] = useState(false);
   const cfg = voiceConfig(voice);
+  const harry = cfg.engine === "harry";
+  const say = (keysOrText) => {
+    if (harry) playClips(keysOrText, { volume: cfg.volume });
+    else speak(keysOrText, cfg);
+  };
   const cueRef = useRef({ index: -1, second: null, done: false });
   const wakeRef = useRef(null);
 
@@ -38,9 +45,12 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
     const acquire = async () => { try { if ("wakeLock" in navigator) wakeRef.current = await navigator.wakeLock.request("screen"); } catch { /* opcional */ } };
     acquire();
     keepScreenOn(true);
+    if (voiceConfig(voice).engine === "harry") preloadClips(preloadKeys(buildPhases(run.timer), voice));
     const onVis = () => { if (document.visibilityState === "visible") { acquire(); resumeSound(); setNow(Date.now()); } };
     document.addEventListener("visibilitychange", onVis);
-    return () => { document.removeEventListener("visibilitychange", onVis); keepScreenOn(false); stopSpeaking(); try { wakeRef.current?.release(); } catch { /* */ } };
+    return () => { document.removeEventListener("visibilitychange", onVis); keepScreenOn(false); stopSpeaking(); stopClips(); try { wakeRef.current?.release(); } catch { /* */ } };
+    // Sólo al abrir el temporizador (precarga con la configuración de ese momento).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cur = runStatus(run, phases, now);
@@ -60,8 +70,8 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
         c.done = true;
         if (!muted) {
           if (cfg.beeps) cue("end");
-          const said = finishSpeech(cfg, t.mode, wodResult(run, phases));
-          if (cfg.enabled) setTimeout(() => speak(said, cfg), 900);
+          const said = harry ? finishClips(cfg) : finishSpeech(cfg, t.mode, wodResult(run, phases));
+          if (cfg.enabled) setTimeout(() => say(said), 900);
         }
         onFinish();
       }
@@ -76,7 +86,8 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
     if (muted || restored) return;
     const out = cueFor({ phase, remaining, elapsed: Math.floor(cur.elapsedInPhaseMs / 1000), started, mode: t.mode, rounds: t.rounds }, cfg);
     if (out.beep) cue(out.beep);
-    if (out.speech) speak(out.speech, cfg);
+    if (harry) { const keys = clipsFor(out.event, cfg); if (keys.length) say(keys); }
+    else if (out.speech) say(out.speech);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cur.index, remaining, cur.done, paused]);
 
@@ -85,7 +96,7 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
     unlockSound();
     if (d > 0 && !muted && cfg.beeps) cue("tick");
     const n = Math.max(0, (run.roundsDone || 0) + d);
-    if (d > 0 && !muted && cfg.enabled && !cur.done) speak(roundSpeech(cfg, n), cfg);
+    if (d > 0 && !muted && cfg.enabled && !cur.done) say(harry ? roundClips(cfg, n) : roundSpeech(cfg, n));
     onChange(r => ({ ...r, roundsDone: Math.max(0, (r.roundsDone || 0) + d) }));
   };
   const bg = cur.done ? "#0f0a1a" : BG[phase.kind];
@@ -101,7 +112,7 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
           <div className="text-[12px] text-white/75 font-mono">{countUp ? `límite ${fmtSec(phase.sec)}` : `total restante ${fmtSec(Math.max(0, total - cur.ms / 1000))}`}</div>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => { unlockSound(); setMuted(m => { if (!m) stopSpeaking(); return !m; }); }} aria-label={muted ? "activar sonido" : "silenciar"} className="w-10 h-10 grid place-items-center rounded-full bg-white/15 cursor-pointer">
+          <button type="button" onClick={() => { unlockSound(); setMuted(m => { if (!m) { stopSpeaking(); stopClips(); } return !m; }); }} aria-label={muted ? "activar sonido" : "silenciar"} className="w-10 h-10 grid place-items-center rounded-full bg-white/15 cursor-pointer">
             {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
           </button>
           <button type="button" onClick={() => setSettings(true)} aria-label="configurar voz" className="w-10 h-10 grid place-items-center rounded-full bg-white/15 cursor-pointer"><Settings2 size={19} /></button>

@@ -65,6 +65,20 @@ self.addEventListener("push", (event) => {
   })());
 });
 
+// Audios de la voz (public/voice/…): se guardan al primer uso para que el temporizador
+// hable aunque no haya internet en el gimnasio.
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin || !url.pathname.startsWith("/voice/")) return;
+  event.respondWith(caches.open("voice-v1").then(async (cache) => {
+    const hit = await cache.match(event.request);
+    if (hit) return hit;
+    const res = await fetch(event.request);
+    if (res.ok) cache.put(event.request, res.clone());
+    return res;
+  }));
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil(

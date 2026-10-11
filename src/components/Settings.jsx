@@ -5,7 +5,11 @@ import { cx } from "../lib/cx.js";
 import { Card } from "./ui/Card.jsx";
 import { Stepper } from "./ui/Stepper.jsx";
 
-const inputCls = "w-full px-3 py-2.5 bg-panel border border-line rounded-xl text-sm text-ink outline-none focus:border-amber";
+/* global __APP_VERSION__ -- inyectado por vite.config.js (define) */
+const APP_VERSION = __APP_VERSION__;
+const builtAtLabel = new Date(APP_VERSION.builtAt).toLocaleString("es", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+
+const inputCls ="w-full px-3 py-2.5 bg-panel border border-line rounded-xl text-sm text-ink outline-none focus:border-amber";
 
 export function Settings({ programName, restSeconds, onChangeProgram, onChangeRest, onReset }){
   const [status, setStatus] = useState(getSubscription() ? "activo" : "inactivo");
@@ -60,6 +64,11 @@ export function Settings({ programName, restSeconds, onChangeProgram, onChangeRe
         </button>
         <div className="text-faint text-xs mt-2">Restaura las rutinas y el historial base importado de Hevy, y borra las sesiones y rutinas que creaste en la app.</div>
       </Card>
+
+      <div className="text-faint text-xs text-center mt-5 px-2">
+        <div>Versión <span className="font-mono text-mut">{APP_VERSION.commit}{APP_VERSION.dirty && "+cambios"}</span> · compilada {builtAtLabel}</div>
+        {APP_VERSION.subject && <div className="mt-0.5 truncate">{APP_VERSION.subject}</div>}
+      </div>
     </div>
   );
 }

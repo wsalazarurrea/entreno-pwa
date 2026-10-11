@@ -73,7 +73,7 @@ export default function App(){
       const left = Math.round((s.restEnd - Date.now()) / 1000);
       if(left < 2 || pushedForRef.current === s.restEnd || s.pushedFor === s.restEnd) return;
       pushedForRef.current = s.restEnd;
-      scheduleRest(left, undefined, { keepalive: true, scheduledFor: s.restEnd });
+      scheduleRest(left, { title: "Descanso terminado", body: "¡A la siguiente serie! 💪", label: s.restLabel }, { keepalive: true, scheduledFor: s.restEnd });
       setSession(x => x && x.restEnd === s.restEnd ? { ...x, pushedFor: s.restEnd } : x);
     };
     document.addEventListener("visibilitychange", onHide);

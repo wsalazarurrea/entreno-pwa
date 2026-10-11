@@ -1,0 +1,3 @@
+dos cosas:
+1. necesito que la rutina se sincronice con mi app de fitness de iphone
+2. es posible correrlo directo como app de iphone?

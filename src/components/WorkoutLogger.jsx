@@ -165,7 +165,8 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
 
   // El aviso push no se programa aquí sino al salir de la app (App.jsx), con el tiempo que quede
   // en ese momento: así respeta los −15 / +15 / Omitir hechos mientras la app está abierta.
-  const startRest = (sec) => update(s => ({ ...s, restEnd: Date.now() + sec * 1000, restTotal: sec }));
+  // restLabel ("Ejercicio · serie N") viaja en el aviso para saber a qué descanso corresponde.
+  const startRest = (sec, label) => update(s => ({ ...s, restEnd: Date.now() + sec * 1000, restTotal: sec, restLabel: label }));
   const adjustRest = (d) => update(s => s.restEnd ? { ...s, restEnd: Math.max(Date.now() + 1000, s.restEnd + d * 1000), restTotal: Math.max(1, (s.restTotal || 0) + d) } : s);
   const restLeft = session.restEnd ? Math.max(0, Math.ceil((session.restEnd - now) / 1000)) : null;
 
@@ -179,7 +180,11 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
     setErrKey(null);
     updSet(ei, si, { w, r, done: true });
     ensureAudio();
-    if (live && isWorking(s)) { const sec = e.rest ?? restDefault; if (sec > 0) startRest(sec); }
+    if (live && isWorking(s)) {
+      const sec = e.rest ?? restDefault;
+      const n = e.sets.slice(0, si + 1).filter(isWorking).length;
+      if (sec > 0) startRest(sec, `${e.name} · serie ${n}`);
+    }
   };
   const addSet = (ei) => updEx(ei, e => ({ ...e, sets: [...e.sets, { key: Math.random().toString(36).slice(2), w: "", r: "", type: "normal", done: false }] }));
   /** Copia lo de la vez anterior en las series aún no marcadas (crea las que falten). */
@@ -302,7 +307,7 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
           <div className="flex items-center gap-2 px-4 pt-2.5">
             <button type="button" onClick={() => adjustRest(-15)} className="w-14 py-2.5 rounded-lg bg-panel2 font-mono font-semibold cursor-pointer">−15</button>
             <div className="flex-1 text-center">
-              <div className="text-[11px] text-faint">Descanso</div>
+              <div className="text-[11px] text-faint">Descanso · termina {new Date(session.restEnd).toLocaleTimeString("es-CL", { hour12: false })}</div>
               <div className="font-mono font-bold text-[26px] leading-none tabular-nums">{formatClock(restLeft)}</div>
             </div>
             <button type="button" onClick={() => adjustRest(15)} className="w-14 py-2.5 rounded-lg bg-panel2 font-mono font-semibold cursor-pointer">+15</button>

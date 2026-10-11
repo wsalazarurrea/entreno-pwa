@@ -36,16 +36,22 @@ self.addEventListener("push", (event) => {
     let data = { title: "Descanso terminado", body: "¡A la siguiente serie! 💪" };
     try { if (event.data) data = Object.assign(data, event.data.json()); } catch { /* payload no JSON */ }
     let tag = "rest-timer";
-    if (data.test && data.scheduledFor) {
+    if (data.scheduledFor) {
+      // Hora a la que debía llegar vs. hora real, para poder identificar cada aviso.
       const hhmmss = (t) => new Date(t).toLocaleTimeString("es-CL", { hour12: false });
       const diff = Math.round((Date.now() - data.scheduledFor) / 1000);
-      data.body = `Debía llegar ${hhmmss(data.scheduledFor)} · llegó ${hhmmss(Date.now())} (${diff >= 0 ? "+" : ""}${diff} s)`;
-    } else if (data.scheduledFor && !(await isCurrentRest(data.scheduledFor))) {
-      // Aviso de un descanso que ya cambiaste u omitiste. iOS exige mostrar algo por cada push
-      // (si no, puede revocar los avisos), así que se muestra uno neutro en vez de "Descanso terminado".
-      data.title = "Entrenamiento en curso";
-      data.body = "Toca para volver a tu entrenamiento.";
-      tag = "workout";
+      const timing = `Debía llegar ${hhmmss(data.scheduledFor)} · llegó ${hhmmss(Date.now())} (${diff >= 0 ? "+" : ""}${diff} s)`;
+      if (data.test) {
+        data.body = timing;
+      } else if (!(await isCurrentRest(data.scheduledFor))) {
+        // Aviso de un descanso que ya cambiaste u omitiste. iOS exige mostrar algo por cada push
+        // (si no, puede revocar los avisos), así que se muestra uno neutro en vez de "Descanso terminado".
+        data.title = "Entrenamiento en curso";
+        data.body = [data.label && `Descanso cambiado u omitido: ${data.label}`, timing].filter(Boolean).join("\n");
+        tag = "workout";
+      } else {
+        data.body = [data.label, timing].filter(Boolean).join("\n");
+      }
     }
     await self.registration.showNotification(data.title, {
       body: data.body,

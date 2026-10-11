@@ -7,7 +7,12 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {
   let data = { title: "Descanso terminado", body: "¡A la siguiente serie! 💪" };
-  try { if (event.data) data = Object.assign(data, event.data.json()); } catch (e) {}
+  try { if (event.data) data = Object.assign(data, event.data.json()); } catch { /* payload no JSON */ }
+  if (data.test && data.scheduledFor) {
+    const hhmmss = (t) => new Date(t).toLocaleTimeString("es-CL", { hour12: false });
+    const diff = Math.round((Date.now() - data.scheduledFor) / 1000);
+    data.body = `Debía llegar ${hhmmss(data.scheduledFor)} · llegó ${hhmmss(Date.now())} (${diff >= 0 ? "+" : ""}${diff} s)`;
+  }
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,

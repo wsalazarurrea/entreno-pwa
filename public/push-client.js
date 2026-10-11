@@ -54,7 +54,8 @@ export async function scheduleRest(seconds = 120, payload = { title: "Descanso t
     const res = await fetch(N8N_WEBHOOK, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seconds, subscription, payload })
+      // scheduledFor: el service worker lo usa para mostrar cuánto se adelantó o atrasó el aviso.
+      body: JSON.stringify({ seconds, subscription, payload: { ...payload, scheduledFor: Date.now() + seconds * 1000 } })
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
     return true;

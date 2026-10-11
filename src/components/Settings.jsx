@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RotateCcw, FileUp, Download, Upload } from "lucide-react";
 import { getSubscription, subscribePush, isStandalone, scheduleRest } from "../lib/push-client.js";
 import { parseHevyCSV } from "../lib/hevyImport.js";
@@ -34,12 +34,16 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
   const [msg, setMsg] = useState("");
   const csvRef = useRef(null), backupRef = useRef(null);
 
-  const [test, setTest] = useState("");
-  const probar = async () => {
-    setTest("Programando…");
-    const ok = await scheduleRest(10, { title: "Prueba de aviso", body: "Si ves esto con la app en segundo plano, los avisos funcionan ✅" });
-    setTest(ok ? "Listo: sal de la app o bloquea el teléfono; el aviso llega en ~10 s." : "No se pudo programar el aviso (sin conexión con el servidor de avisos).");
+  const [test, setTest] = useState(null); // { at } | { error }
+  const [, tick] = useState(0);
+  useEffect(() => { if (!test?.at) return; const t = setInterval(() => tick(x => x + 1), 500); return () => clearInterval(t); }, [test]);
+  const probar = async (secs) => {
+    setTest({ pending: true });
+    const at = Date.now() + secs * 1000;
+    const ok = await scheduleRest(secs, { title: "Prueba de aviso", body: "Los avisos funcionan ✅", test: true });
+    setTest(ok ? { at } : { error: "No se pudo programar el aviso (sin conexión con el servidor de avisos)." });
   };
+  const left = test?.at ? Math.ceil((test.at - Date.now()) / 1000) : null;
   const activar = async () => {
     setBusy(true); setError("");
     try{ await subscribePush(); setStatus("activo"); }
@@ -90,14 +94,26 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
       )}
       <Card className="p-4 mb-5">
         <div className="mb-2.5 text-sm">Estado: <span className={cx("font-mono", status==="activo" ? "text-teal" : "text-mut")}>{status}</span></div>
-        <button onClick={activar} disabled={busy} className="w-full py-3.5 bg-amber text-white rounded-xl text-[15px] font-bold cursor-pointer disabled:opacity-60">
-          {busy ? "Activando…" : "Activar avisos en segundo plano"}
+        <button onClick={activar} disabled={busy}
+          className={cx("w-full rounded-xl font-bold cursor-pointer disabled:opacity-60", status==="activo" ? "py-2.5 bg-panel2 text-ink text-[14px]" : "py-3.5 bg-amber text-white text-[15px]")}>
+          {busy ? "Activando…" : status==="activo" ? "Reactivar avisos" : "Activar avisos en segundo plano"}
         </button>
         {error && <div className="mt-2 text-coral text-[13px]">{error}</div>}
         {status==="activo" && (
           <>
-            <button type="button" onClick={probar} className={cx(btnCls, "mt-2.5")}>Probar aviso (10 s)</button>
-            {test && <div className={cx("mt-2 text-[13px]", test.startsWith("No") ? "text-coral" : "text-mut")}>{test}</div>}
+            <div className="mt-3 text-[13px] text-mut">Probar aviso: tócalo y bloquea el teléfono. El aviso dirá a qué hora debía llegar y a qué hora llegó.</div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {[10, 30, 60].map(sec => (
+                <button key={sec} type="button" onClick={() => probar(sec)} disabled={test?.pending} className={cx(btnCls, "disabled:opacity-50")}>{sec} s</button>
+              ))}
+            </div>
+            {test?.error && <div className="mt-2 text-[13px] text-coral">{test.error}</div>}
+            {test?.at && (
+              <div className="mt-2 text-[13px] text-mut">
+                Debe llegar a las <b className="text-ink font-mono">{new Date(test.at).toLocaleTimeString("es-CL", { hour12: false })}</b>
+                {left > 0 ? <> (en <span className="font-mono">{left} s</span>)</> : " — ya debería haber llegado."}
+              </div>
+            )}
           </>
         )}
       </Card>

@@ -9,6 +9,7 @@ import { buildCatalog } from "./data/exercises.js";
 import { blankRoutine } from "./data/routines.js";
 import { formatClock } from "./lib/dates.js";
 import { initPush, scheduleRest } from "./lib/push-client.js";
+import { isNative, initNative, syncRestNotification, saveWorkoutToHealth } from "./lib/native.js";
 import { BottomNav } from "./components/BottomNav.jsx";
 import { Train } from "./components/Train.jsx";
 import { WorkoutLogger } from "./components/WorkoutLogger.jsx";
@@ -54,11 +55,14 @@ export default function App(){
     setState(s);
     if(a){ setSession(a); setMinimized(false); }
   })(); },[]);
-  useEffect(()=>{ initPush().catch(()=>{}); },[]);
+  useEffect(()=>{ if(isNative) initNative(); else initPush().catch(()=>{}); },[]);
+  // App nativa: el aviso de descanso es local y se reprograma con cada cambio (−15/+15/Omitir).
+  const liveRestEnd = session?.mode === "live" ? session.restEnd : null;
+  useEffect(()=>{ if(isNative) syncRestNotification(liveRestEnd, session?.restLabel); },[liveRestEnd, session?.restLabel]);
   // Cada cambio del entrenamiento en curso se guarda al instante (sobrevive a que iOS cierre la app).
   useEffect(()=>{ if(session) saveActive(session); },[session]);
 
-  // Aviso de descanso en segundo plano: se programa al salir de la app (bloquear el teléfono o
+  // PWA — aviso de descanso en segundo plano: se programa al salir de la app (bloquear el teléfono o
   // cambiar de app), con el tiempo que quede en ese momento. Con la app abierta suena el
   // temporizador propio, así que no hace falta push. Si vuelves y cambias el descanso, al salir
   // de nuevo se programa otro (el anterior llega como aviso neutro, ver public/sw.js).
@@ -67,6 +71,7 @@ export default function App(){
   useEffect(()=>{ sessionRef.current = session; },[session]);
   useEffect(()=>{
     const onHide = (e) => {
+      if(isNative) return; // la app nativa usa avisos locales (efecto de arriba)
       if(e.type === "visibilitychange" && document.visibilityState !== "hidden") return;
       const s = sessionRef.current;
       if(!s || s.mode !== "live" || !s.restEnd) return;
@@ -111,12 +116,33 @@ export default function App(){
   const endSession = () => { setSession(null); setMinimized(false); clearActive(); };
 
   const finish = async ({ updateRoutine }) => {
-    const { state: ns, summary: sm } = commitSession(session, state, { updateRoutine });
+    const { state: ns, summary: sm, workout } = commitSession(session, state, { updateRoutine });
     await persist(ns);
     const wasEdit = session.mode === "edit";
     endSession();
-    if(wasEdit) setTab("history"); else setSummary(sm);
+    if(wasEdit) setTab("history");
+    else {
+      setSummary(sm);
+      if(isNative && ns.healthSync){
+        setSummary({ ...sm, health: { pending: true } });
+        const res = await sendToHealth(workout, ns);
+        setSummary({ ...sm, health: res });
+      }
+    }
     window.scrollTo(0, 0);
+  };
+
+  /** Guarda un entrenamiento en Apple Salud y marca healthUuid. Devuelve { ok } o { error }. */
+  const sendToHealth = async (w, base = state) => {
+    try{
+      const uuid = await saveWorkoutToHealth(w, base.bodyKg);
+      setState(s => {
+        const ns = { ...s, workouts: s.workouts.map(x => x.id === w.id ? { ...x, healthUuid: uuid || true } : x) };
+        saveState(ns);
+        return ns;
+      });
+      return { ok: true };
+    }catch(e){ return { error: e?.message || "No se pudo guardar en Salud" }; }
   };
   const discard = () => { const wasEdit = session?.mode === "edit"; endSession(); if(wasEdit) setTab("history"); };
 
@@ -177,7 +203,7 @@ export default function App(){
               onGoToRoutines={()=>setTab("routines")} />
           )}
           {tab==="history" && (
-            <History state={state} catalog={catalog}
+            <History state={state} catalog={catalog} onSendToHealth={isNative ? sendToHealth : null}
               onEdit={(w)=>start(sessionFromWorkout(w, state, "edit"))}
               onRepeat={(w)=>start(sessionFromWorkout(w, state, "live"))}
               onDelete={(id)=>persist({ ...state, workouts: state.workouts.filter(w=>w.id!==id) })} />
@@ -195,6 +221,7 @@ export default function App(){
               state={state}
               onChangeProgram={(programName)=>persist({ ...state, programName })}
               onChangeRest={(restSeconds)=>persist({ ...state, restSeconds })}
+              onChangeHealth={(patch)=>persist({ ...state, ...patch })}
               onImportHevy={(ws)=>persist(mergeHevyImport(state, ws))}
               onRestore={(data)=>persist(migrateState(data).state)}
               onReset={()=>persist(seedState())}

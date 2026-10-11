@@ -1,0 +1,15 @@
+{
+  "name": "health-workout",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plugin Capacitor mínimo: guarda entrenamientos de fuerza en Apple Salud (HealthKit).",
+  "main": "index.js",
+  "module": "index.js",
+  "files": ["index.js", "Package.swift", "ios/Sources"],
+  "capacitor": {
+    "ios": { "src": "ios" }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

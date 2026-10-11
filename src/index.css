@@ -60,6 +60,10 @@ body::before {
   background: #241c13;
   z-index: 60;
 }
+/* App nativa: la barra de estado usa texto oscuro, así que la franja va del color de fondo. */
+html.native body::before {
+  background: var(--color-bg);
+}
 .sticky-top {
   position: sticky;
   top: var(--sat);

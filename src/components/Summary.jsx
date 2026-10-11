@@ -2,6 +2,7 @@ import { Trophy, Sparkles } from "lucide-react";
 import { PR_LABEL } from "../lib/workouts.js";
 import { formatDay, formatDuration } from "../lib/dates.js";
 import { Card } from "./ui/Card.jsx";
+import { cx } from "../lib/cx.js";
 
 export function Summary({ data, onClose }){
   const fmtPR = (p) => p.kind === "reps" ? `${p.value} reps` : `${Math.round(p.value * 10) / 10} kg`;
@@ -21,6 +22,12 @@ export function Summary({ data, onClose }){
           </Card>
         ))}
       </div>
+
+      {data.health && (
+        <Card className={cx("p-3 mb-3.5 text-[13.5px]", data.health.error ? "bg-coral/10! border-coral/40! text-ink" : "text-ink")}>
+          {data.health.pending ? "Guardando en Apple Salud…" : data.health.ok ? "❤️ Guardado en Apple Salud (aparece en Fitness)." : `No se pudo guardar en Salud: ${data.health.error}`}
+        </Card>
+      )}
 
       {data.prs.length > 0 && (
         <Card className="bg-teal/10! border-teal/40! p-3.5 mb-3.5">

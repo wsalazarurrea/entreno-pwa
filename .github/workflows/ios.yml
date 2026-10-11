@@ -1,0 +1,76 @@
+name: App iPhone (IPA para SideStore)
+
+# Compila la app nativa (Capacitor) en un Mac de GitHub y publica Entreno.ipa en la
+# release "ios-latest". El .ipa va con firma ad-hoc (sin cuenta de Apple) sólo para
+# llevar los entitlements (HealthKit); SideStore/AltStore lo vuelve a firmar con tu
+# Apple ID al instalarlo.
+#   Descarga: https://github.com/<usuario>/<repo>/releases/download/ios-latest/Entreno.ipa
+
+on:
+  push:
+    branches: [master]
+    paths-ignore: ["**.md", "notas.txt", "design/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dependencias y web
+        run: |
+          npm ci
+          npm run build
+          npx cap sync ios
+
+      - name: Compilar (sin firma)
+        run: |
+          command -v xcbeautify >/dev/null || brew install xcbeautify
+          xcodebuild -version
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination "generic/platform=iOS" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            MARKETING_VERSION=1.0 CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            build | xcbeautify --renderer github-actions
+
+      - name: Empaquetar IPA (firma ad-hoc con entitlements)
+        run: |
+          APP=build/Build/Products/Release-iphoneos/App.app
+          if [ -d "$APP/Frameworks" ]; then
+            find "$APP/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - --timestamp=none {} \;
+          fi
+          codesign --force --sign - --timestamp=none --entitlements ios/App/App/App.entitlements "$APP"
+          codesign -d --entitlements - "$APP"
+          mkdir -p Payload && cp -R "$APP" Payload/
+          zip -qry Entreno.ipa Payload
+          ls -lh Entreno.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Entreno-ipa
+          path: Entreno.ipa
+
+      - name: Publicar en la release ios-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete ios-latest --yes --cleanup-tag || true
+          gh release create ios-latest Entreno.ipa \
+            --target "${{ github.sha }}" --prerelease \
+            --title "Entreno iPhone · ${GITHUB_SHA::7}" \
+            --notes "IPA sin firma de tienda, para instalar con SideStore/AltStore usando tu Apple ID. Commit ${GITHUB_SHA::7}, build ${{ github.run_number }}."

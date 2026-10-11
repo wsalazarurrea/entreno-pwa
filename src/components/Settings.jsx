@@ -7,6 +7,8 @@ import { cx } from "../lib/cx.js";
 import { Card } from "./ui/Card.jsx";
 import { RestSelect } from "./ui/RestSelect.jsx";
 import { ConfirmDialog } from "./ui/Sheet.jsx";
+import { NativeSettings } from "./NativeSettings.jsx";
+import { isNative, shareBackupNative } from "../lib/native.js";
 
 /* global __APP_VERSION__ -- inyectado por vite.config.js (define) */
 const APP_VERSION = __APP_VERSION__;
@@ -26,7 +28,7 @@ async function shareOrDownload(filename, text){
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImportHevy, onRestore }){
+export function Settings({ state, onChangeProgram, onChangeRest, onChangeHealth, onReset, onImportHevy, onRestore }){
   const [status, setStatus] = useState(getSubscription() ? "activo" : "inactivo");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +65,11 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
     if(!data || !Array.isArray(data.routines)) throw new Error("El archivo no es un respaldo de esta app.");
     setPending({ kind:"backup", data });
   });
-  const exportBackup = () => shareOrDownload(`entreno-respaldo-${localDate()}.json`, JSON.stringify(state));
+  const exportBackup = () => {
+    const name = `entreno-respaldo-${localDate()}.json`, text = JSON.stringify(state);
+    if (isNative) shareBackupNative(name, text).catch(e => setMsg(e?.message || "No se pudo exportar."));
+    else shareOrDownload(name, text);
+  };
 
   const appCount = state.workouts.filter(w => w.source === "app").length;
   const hevyWs = pending?.kind === "hevy" ? pending.workouts : [];
@@ -86,6 +92,7 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
         </div>
       </Card>
 
+      {isNative ? <NativeSettings state={state} onChangeHealth={onChangeHealth} /> : (<>
       <div className="text-mut text-[13px] mb-2 px-1">Aviso de descanso en segundo plano (push), aunque el teléfono esté bloqueado o estés en otra app.</div>
       {!isStandalone() && (
         <Card className="bg-coral/10! border-coral/40! p-3.5 mb-3.5 text-[13px] text-ink">
@@ -117,6 +124,7 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
           </>
         )}
       </Card>
+      </>)}
 
       <h3 className="font-bold mb-2 px-1">Tus datos</h3>
       <Card className="p-4 mb-3.5 flex flex-col gap-2.5">
@@ -127,7 +135,7 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
         <button type="button" onClick={() => csvRef.current?.click()} className={btnCls}><FileUp size={16} /> Importar CSV de Hevy</button>
         <div className="h-px bg-line my-1" />
         <div className="text-[13px] text-mut">
-          <b className="text-ink">Respaldo.</b> Tus datos viven sólo en este teléfono: si borras la app del inicio, se pierden. Guarda un respaldo de vez en cuando.
+          <b className="text-ink">Respaldo.</b> {isNative ? "Para pasar tus datos desde la versión web: en la web toca Exportar respaldo y aquí Restaurar respaldo." : "Tus datos viven sólo en este teléfono: si borras la app del inicio, se pierden. Guarda un respaldo de vez en cuando."}
         </div>
         <button type="button" onClick={exportBackup} className={btnCls}><Download size={16} /> Exportar respaldo</button>
         <input ref={backupRef} type="file" accept=".json,application/json" className="hidden" onChange={onBackup} />
@@ -144,7 +152,7 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
       </Card>
 
       <div className="text-faint text-xs text-center mt-5 px-2">
-        <div>Versión <span className="font-mono text-mut">{APP_VERSION.commit}{APP_VERSION.dirty && "+cambios"}</span> · compilada {builtAtLabel}</div>
+        <div>Versión <span className="font-mono text-mut">{APP_VERSION.commit}{APP_VERSION.dirty && "+cambios"}</span>{isNative ? " · app iPhone" : ""} · compilada {builtAtLabel}</div>
         {APP_VERSION.subject && <div className="mt-0.5 truncate">{APP_VERSION.subject}</div>}
       </div>
 

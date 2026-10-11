@@ -13,8 +13,10 @@ import { ExerciseDetail, SetList } from "./ExerciseDetail.jsx";
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const monthLabel = (d) => { const x = parseLocalDate(d); return `${MONTHS[x.getMonth()]} ${x.getFullYear()}`; };
 
-function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise }){
+function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise, onSendToHealth }){
   const [open, setOpen] = useState(false);
+  const [health, setHealth] = useState(null); // null | "sending" | { ok } | { error }
+  const sendHealth = async () => { setHealth("sending"); setHealth(await onSendToHealth(w)); };
   const st = workoutStats(w);
   const prs = w.prs?.length || 0;
   return (
@@ -59,6 +61,17 @@ function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise }){
               </div>
             );
           })}
+          {onSendToHealth && (
+            w.healthUuid || health?.ok
+              ? <div className="text-[13px] text-teal">❤️ Guardado en Apple Salud</div>
+              : <div>
+                  <button type="button" onClick={sendHealth} disabled={health === "sending"}
+                    className="w-full py-2.5 rounded-lg border border-line text-ink text-[13px] font-semibold cursor-pointer disabled:opacity-50">
+                    {health === "sending" ? "Enviando…" : "❤️ Enviar a Apple Salud"}
+                  </button>
+                  {health?.error && <div className="mt-1 text-[12.5px] text-coral">{health.error}</div>}
+                </div>
+          )}
           <div className="grid grid-cols-3 gap-2 pt-1">
             <button type="button" onClick={onRepeat} className="py-2.5 rounded-lg bg-amber text-white text-[13px] font-bold flex items-center justify-center gap-1.5 cursor-pointer"><Repeat size={14} /> Repetir</button>
             <button type="button" onClick={onEdit} className="py-2.5 rounded-lg bg-panel2 text-ink text-[13px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer"><Pencil size={14} /> Editar</button>
@@ -70,7 +83,7 @@ function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise }){
   );
 }
 
-export function History({ state, catalog, onEdit, onRepeat, onDelete }){
+export function History({ state, catalog, onEdit, onRepeat, onDelete, onSendToHealth }){
   const [view, setView] = useState("workouts");
   const [limit, setLimit] = useState(15);
   const [toDelete, setToDelete] = useState(null);
@@ -122,7 +135,7 @@ export function History({ state, catalog, onEdit, onRepeat, onDelete }){
             return (
               <div key={w.id}>
                 {header}
-                <WorkoutCard w={w} onEdit={() => onEdit(w)} onRepeat={() => onRepeat(w)} onDelete={() => setToDelete(w)} onOpenExercise={openExercise} />
+                <WorkoutCard w={w} onEdit={() => onEdit(w)} onRepeat={() => onRepeat(w)} onDelete={() => setToDelete(w)} onOpenExercise={openExercise} onSendToHealth={onSendToHealth} />
               </div>
             );
           })}

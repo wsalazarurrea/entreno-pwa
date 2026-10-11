@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Icono "gym de los 80": atardecer synthwave, sol a franjas, grilla neón y mancuerna cromada.
+       Fuente de public/icon-*.png y del AppIcon de iOS (ver scripts/render-icons.cjs). -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a0536"/>
+      <stop offset="0.45" stop-color="#5b0f6b"/>
+      <stop offset="0.62" stop-color="#c2185b"/>
+      <stop offset="0.64" stop-color="#ff5f2e"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff35c"/>
+      <stop offset="0.5" stop-color="#ff9f1c"/>
+      <stop offset="1" stop-color="#ff2e88"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b0a4a"/>
+      <stop offset="1" stop-color="#0d0221"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.38" stop-color="#cfd8e3"/>
+      <stop offset="0.5" stop-color="#5a6b82"/>
+      <stop offset="0.56" stop-color="#2f3b4d"/>
+      <stop offset="0.75" stop-color="#9fb1c6"/>
+      <stop offset="1" stop-color="#e9f1fa"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f8fc"/>
+      <stop offset="0.5" stop-color="#7d8ea5"/>
+      <stop offset="1" stop-color="#dfe7f0"/>
+    </linearGradient>
+    <clipPath id="sunClip"><circle cx="512" cy="560" r="300"/></clipPath>
+    <clipPath id="floorClip"><rect x="0" y="655" width="1024" height="369"/></clipPath>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#12002a" flood-opacity="0.75"/>
+    </filter>
+  </defs>
+
+  <!-- Cielo -->
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <!-- Estrellas -->
+  <g fill="#ffd6f5" opacity="0.8">
+    <circle cx="140" cy="140" r="4"/><circle cx="300" cy="90" r="3"/><circle cx="820" cy="120" r="4"/>
+    <circle cx="920" cy="260" r="3"/><circle cx="90" cy="320" r="3"/><circle cx="700" cy="60" r="3"/>
+  </g>
+
+  <!-- Sol a franjas -->
+  <g clip-path="url(#sunClip)">
+    <rect x="200" y="260" width="624" height="400" fill="url(#sun)"/>
+    <g fill="#c2185b">
+      <rect x="200" y="500" width="624" height="10"/>
+      <rect x="200" y="535" width="624" height="14"/>
+      <rect x="200" y="572" width="624" height="18"/>
+      <rect x="200" y="612" width="624" height="22"/>
+    </g>
+  </g>
+
+  <!-- Piso con grilla neón -->
+  <rect x="0" y="655" width="1024" height="369" fill="url(#floor)"/>
+  <g clip-path="url(#floorClip)" stroke="#ff2fd1" stroke-width="5" filter="url(#glow)" opacity="0.9">
+    <line x1="0" y1="660" x2="1024" y2="660" stroke="#ff7ae6" stroke-width="7"/>
+    <line x1="0" y1="690" x2="1024" y2="690"/>
+    <line x1="0" y1="732" x2="1024" y2="732"/>
+    <line x1="0" y1="792" x2="1024" y2="792"/>
+    <line x1="0" y1="872" x2="1024" y2="872"/>
+    <line x1="0" y1="980" x2="1024" y2="980"/>
+    <line x1="512" y1="655" x2="512" y2="1024"/>
+    <line x1="512" y1="655" x2="330" y2="1024"/>
+    <line x1="512" y1="655" x2="694" y2="1024"/>
+    <line x1="512" y1="655" x2="130" y2="1024"/>
+    <line x1="512" y1="655" x2="894" y2="1024"/>
+    <line x1="512" y1="655" x2="-90" y2="1024"/>
+    <line x1="512" y1="655" x2="1114" y2="1024"/>
+    <line x1="512" y1="655" x2="-330" y2="1024"/>
+    <line x1="512" y1="655" x2="1354" y2="1024"/>
+  </g>
+
+  <!-- Mancuerna cromada, inclinada, con contorno neón -->
+  <g transform="rotate(-16 512 600)" filter="url(#shadow)">
+    <g stroke="#2de2ff" stroke-width="10" stroke-linejoin="round" filter="url(#glow)" fill="none" opacity="0.95">
+      <rect x="262" y="572" width="500" height="56" rx="20"/>
+      <rect x="168" y="452" width="96" height="296" rx="26"/>
+      <rect x="760" y="452" width="96" height="296" rx="26"/>
+      <rect x="110" y="500" width="70" height="200" rx="22"/>
+      <rect x="844" y="500" width="70" height="200" rx="22"/>
+    </g>
+    <rect x="262" y="572" width="500" height="56" rx="20" fill="url(#bar)"/>
+    <!-- Moleteado -->
+    <g stroke="#56657a" stroke-width="5" opacity="0.6">
+      <line x1="430" y1="578" x2="430" y2="622"/><line x1="452" y1="578" x2="452" y2="622"/>
+      <line x1="474" y1="578" x2="474" y2="622"/><line x1="550" y1="578" x2="550" y2="622"/>
+      <line x1="572" y1="578" x2="572" y2="622"/><line x1="594" y1="578" x2="594" y2="622"/>
+    </g>
+    <rect x="168" y="452" width="96" height="296" rx="26" fill="url(#chrome)"/>
+    <rect x="760" y="452" width="96" height="296" rx="26" fill="url(#chrome)"/>
+    <rect x="110" y="500" width="70" height="200" rx="22" fill="url(#chrome)"/>
+    <rect x="844" y="500" width="70" height="200" rx="22" fill="url(#chrome)"/>
+    <!-- Brillos -->
+    <g fill="#ffffff" opacity="0.85">
+      <rect x="186" y="470" width="16" height="110" rx="8"/>
+      <rect x="778" y="470" width="16" height="110" rx="8"/>
+      <rect x="124" y="516" width="12" height="70" rx="6"/>
+      <rect x="858" y="516" width="12" height="70" rx="6"/>
+    </g>
+    <path d="M 640 470 l 10 -26 l 10 26 l 26 10 l -26 10 l -10 26 l -10 -26 l -26 -10 z" fill="#ffffff" transform="translate(180 -40)"/>
+  </g>
+</svg>

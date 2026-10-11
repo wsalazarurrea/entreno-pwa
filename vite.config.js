@@ -14,6 +14,12 @@ const subject = process.env.VERCEL_GIT_COMMIT_MESSAGE?.split('\n')[0] || git('lo
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Igual que el rewrite de vercel.json: /api/rest-timer → webhook de n8n.
+  server: {
+    proxy: {
+      '/api/rest-timer': { target: 'http://129.121.58.135', changeOrigin: true, rewrite: () => '/webhook/rest-timer' },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify({ commit, dirty, subject, builtAt: new Date().toISOString() }),
   },

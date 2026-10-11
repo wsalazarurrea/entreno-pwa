@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { RotateCcw, FileUp, Download, Upload } from "lucide-react";
-import { getSubscription, subscribePush, isStandalone } from "../lib/push-client.js";
+import { getSubscription, subscribePush, isStandalone, scheduleRest } from "../lib/push-client.js";
 import { parseHevyCSV } from "../lib/hevyImport.js";
 import { localDate, formatDay } from "../lib/dates.js";
 import { cx } from "../lib/cx.js";
@@ -34,6 +34,12 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
   const [msg, setMsg] = useState("");
   const csvRef = useRef(null), backupRef = useRef(null);
 
+  const [test, setTest] = useState("");
+  const probar = async () => {
+    setTest("Programando…");
+    const ok = await scheduleRest(10, { title: "Prueba de aviso", body: "Si ves esto con la app en segundo plano, los avisos funcionan ✅" });
+    setTest(ok ? "Listo: sal de la app o bloquea el teléfono; el aviso llega en ~10 s." : "No se pudo programar el aviso (sin conexión con el servidor de avisos).");
+  };
   const activar = async () => {
     setBusy(true); setError("");
     try{ await subscribePush(); setStatus("activo"); }
@@ -88,6 +94,12 @@ export function Settings({ state, onChangeProgram, onChangeRest, onReset, onImpo
           {busy ? "Activando…" : "Activar avisos en segundo plano"}
         </button>
         {error && <div className="mt-2 text-coral text-[13px]">{error}</div>}
+        {status==="activo" && (
+          <>
+            <button type="button" onClick={probar} className={cx(btnCls, "mt-2.5")}>Probar aviso (10 s)</button>
+            {test && <div className={cx("mt-2 text-[13px]", test.startsWith("No") ? "text-coral" : "text-mut")}>{test}</div>}
+          </>
+        )}
       </Card>
 
       <h3 className="font-bold mb-2 px-1">Tus datos</h3>

@@ -4,8 +4,10 @@
    bundler de Vite y no pueden importarse desde el código de la app.
    Si cambias este archivo, replica el cambio también en public/push-client.js. */
 
-// ⬇️ Pon aquí la Production URL de tu webhook de n8n (paso 4 del README)
-const N8N_WEBHOOK = "http://129.121.58.135/webhook/rest-timer";
+// Ruta del mismo dominio (https). Vercel la reenvía al webhook de n8n (ver vercel.json;
+// en desarrollo, el proxy de vite.config.js). Llamar directo a http://… desde la app
+// publicada en https lo bloquea el navegador por "contenido mixto".
+const N8N_WEBHOOK = "/api/rest-timer";
 const VAPID_PUBLIC = "BAhTAdSqrI77Q-lirqCCzBcu60cpxlwx1R2BbniB_I0qcoqkPYpia5CHeeoRrE0cU2kFcVsOiIZcKFwjVH9ngnY";
 
 function urlBase64ToUint8Array(base64String) {
@@ -45,19 +47,18 @@ export function getSubscription() {
   return raw ? JSON.parse(raw) : null;
 }
 
-// Programa el aviso: n8n espera `seconds` y luego dispara el push
-export async function scheduleRest(seconds = 120) {
+// Programa el aviso: n8n espera `seconds` y luego dispara el push.
+// Devuelve true si n8n lo aceptó (sin suscripción, el timer local sigue funcionando igual).
+export async function scheduleRest(seconds = 120, payload = { title: "Descanso terminado", body: "¡A la siguiente serie! 💪" }) {
   const subscription = getSubscription();
-  if (!subscription) return; // sin suscripción, el timer local sigue funcionando igual
+  if (!subscription) return false;
   try {
-    await fetch(N8N_WEBHOOK, {
+    const res = await fetch(N8N_WEBHOOK, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        seconds,
-        subscription,
-        payload: { title: "Descanso terminado", body: "¡A la siguiente serie! 💪" }
-      })
+      body: JSON.stringify({ seconds, subscription, payload })
     });
-  } catch (e) { console.warn("No se pudo programar el push:", e); }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return true;
+  } catch (e) { console.warn("No se pudo programar el push:", e); return false; }
 }

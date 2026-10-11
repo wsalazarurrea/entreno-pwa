@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/rest-timer", "destination": "http://129.121.58.135/webhook/rest-timer" }
+  ]
+}

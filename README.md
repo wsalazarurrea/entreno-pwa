@@ -19,6 +19,6 @@ Genera `dist/` con `sw.js`, `manifest.webmanifest`, `push-client.js` y los ícon
 
 ## Push en segundo plano (iPhone)
 
-Ver `n8n-rest-timer.json` (workflow de n8n a importar) y `public/push-client.js` (`N8N_WEBHOOK` debe apuntar a la Production URL del webhook una vez activado el workflow).
+Ver `n8n-rest-timer.json` (workflow de n8n a importar). La app llama a `/api/rest-timer` en su propio dominio y Vercel lo reenvía al webhook de n8n (`vercel.json`; en desarrollo, el proxy de `vite.config.js`). No llamar al webhook por `http://` directo desde la app: el navegador lo bloquea por contenido mixto.
 
 Limitaciones de iOS: requiere instalar la PWA desde el ícono (Compartir → Agregar a inicio), no funciona desde una pestaña de Safari; precisión de ±unos segundos; requiere red al momento del disparo.

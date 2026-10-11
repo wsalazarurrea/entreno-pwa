@@ -54,3 +54,11 @@ node scripts/generate-voice.cjs --key-file ruta --only ph-work --force   # regen
 ```
 
 La clave nunca va al repositorio. En Ajustes se puede volver a la voz del sistema (español).
+
+## Técnica de ejercicios y guías de WOD
+
+- `src/data/technique.js`: fichas por familia de movimiento (pasos, claves, errores) y reglas que asocian cada
+  nombre de ejercicio a su familia; `src/data/techExtras.js`: imagen y alternativas Básico/Normal/Avanzado.
+- Imágenes: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (dominio público, Unlicense), reducidas en
+  `public/tech/` con `node scripts/fetch-tech-images.cjs` (requiere playwright-core y Edge/Chrome).
+- `src/data/wodGuides.js`: cómo se juega cada WOD, estrategia, escalado y referencias orientativas.

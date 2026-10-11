@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Search, Check, Plus, X } from "lucide-react";
+import { ArrowLeft, Search, Check, Plus, X, Info } from "lucide-react";
+import { TechniqueSheet } from "./TechniqueSheet.jsx";
 import { MUSCLES, EQUIPMENT } from "../data/exercises.js";
 import { cx } from "../lib/cx.js";
 
@@ -37,6 +38,7 @@ export function ExercisePicker({ title = "Elegir ejercicio", catalog, recent = [
   const [equipment, setEquipment] = useState("");
   const [selected, setSelected] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [tech, setTech] = useState(null);
 
   const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const filtered = useMemo(() => {
@@ -70,6 +72,8 @@ export function ExercisePicker({ title = "Elegir ejercicio", catalog, recent = [
           <div className="text-[12px] text-faint truncate">{e.muscle} · {e.equipment}{e.custom ? " · personalizado" : ""}</div>
         </div>
         {sel && <Check size={18} className="text-amber shrink-0" />}
+        <span role="button" tabIndex={0} aria-label="cómo se hace" onClick={(ev) => { ev.stopPropagation(); setTech(e.name); }}
+          className="w-9 h-9 -mr-2 grid place-items-center text-amber shrink-0"><Info size={18} /></span>
       </button>
     );
   };
@@ -120,6 +124,8 @@ export function ExercisePicker({ title = "Elegir ejercicio", catalog, recent = [
         )}
         <div className="h-24" />
       </div>
+
+      <TechniqueSheet open={!!tech} name={tech} onClose={() => setTech(null)} onUse={(n) => { setTech(null); pick(n); }} />
 
       {multi && (
         <div className="p-4 pb-safe border-t border-line bg-bg">

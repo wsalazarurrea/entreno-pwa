@@ -174,6 +174,12 @@ export function onShortcutReturn(fn){
   return () => { handle.then(h => h.remove()); };
 }
 
+/** Abre un enlace fuera de la app (YouTube, etc.). */
+export function openExternal(url){
+  if (isNative) AppLauncher.openUrl({ url }).catch(() => {});
+  else window.open(url, "_blank", "noopener");
+}
+
 /* ---------- Respaldo ---------- */
 
 /** Escribe el respaldo en un archivo temporal y abre la hoja de compartir de iOS. */

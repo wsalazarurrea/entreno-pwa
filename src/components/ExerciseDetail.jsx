@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info } from "lucide-react";
+import { TechniqueSheet } from "./TechniqueSheet.jsx";
 import { exerciseHistory, exerciseRecords, SET_TYPES, isWorking } from "../lib/workouts.js";
 import { formatDay, formatShort } from "../lib/dates.js";
 import { cx } from "../lib/cx.js";
@@ -33,6 +34,7 @@ export function SetList({ sets, unit }){
 
 export function ExerciseDetail({ name, info, workouts, onBack }){
   const [metric, setMetric] = useState("e1rm");
+  const [tech, setTech] = useState(false);
   const hist = useMemo(() => exerciseHistory(workouts, name), [workouts, name]);
   const rec = useMemo(() => exerciseRecords(workouts, name), [workouts, name]);
   const m = METRICS.find(x => x.key === metric);
@@ -51,7 +53,9 @@ export function ExerciseDetail({ name, info, workouts, onBack }){
     <div>
       <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-mut text-sm mb-3 cursor-pointer"><ArrowLeft size={17} /> Ejercicios</button>
       <h2 className="font-display text-[26px] leading-tight">{name}</h2>
-      {info && <div className="text-[13px] text-mut mb-4">{info.muscle} · {info.equipment}</div>}
+      {info && <div className="text-[13px] text-mut mb-2">{info.muscle} · {info.equipment}</div>}
+      <button type="button" onClick={() => setTech(true)} className="mb-4 px-3 py-2 rounded-xl bg-panel2 border border-line text-[14px] font-semibold flex items-center gap-1.5 cursor-pointer"><Info size={16} className="text-amber" /> Cómo se hace</button>
+      <TechniqueSheet open={tech} name={name} onClose={() => setTech(false)} />
 
       <div className="grid grid-cols-2 gap-2 mb-4">
         {tiles.map(([l, v, d]) => (

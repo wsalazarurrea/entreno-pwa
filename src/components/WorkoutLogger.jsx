@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { ChevronDown, Ellipsis, Check, Plus, Timer, Volume2, VolumeX, Trash2, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronDown, Ellipsis, Check, Plus, Timer, Volume2, VolumeX, Trash2, RefreshCw, ArrowUp, ArrowDown, Info } from "lucide-react";
 import { lastPerformance, SET_TYPES, isWorking } from "../lib/workouts.js";
 import { suggestion, placeholderFor, parseNum, makeSessionExercise, sessionDiffersFromRoutine, incFor } from "../lib/training.js";
 import { formatClock, formatRest, formatShort } from "../lib/dates.js";
@@ -10,6 +10,7 @@ import { StepInput } from "./ui/StepInput.jsx";
 import { Sheet, SheetItem, ConfirmDialog } from "./ui/Sheet.jsx";
 import { REST_OPTIONS } from "../lib/dates.js";
 import { ExercisePicker } from "./ExercisePicker.jsx";
+import { TechniqueSheet } from "./TechniqueSheet.jsx";
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const fmtSet = (s) => `${s.w ? s.w : "PC"}×${s.r ?? "–"}`;
@@ -55,7 +56,7 @@ function SetRow({ set, label, labelCls, ph, unit, wStep, err, onLabel, onChange,
   );
 }
 
-function ExerciseCard({ ex, last, sug, live, errKey, restDefault, wStep, onMenu, onRest, onSetMenu, onToggle, onSetChange, onDeleteSet, onAddSet, onNote, onUsePrev }){
+function ExerciseCard({ ex, last, sug, live, errKey, restDefault, wStep, onMenu, onTech, onRest, onSetMenu, onToggle, onSetChange, onDeleteSet, onAddSet, onNote, onUsePrev }){
   let n = 0;
   const sugCls = sug.kind === "up" ? "text-teal border-teal/40 bg-teal/10" : sug.kind === "hold" ? "text-amber border-amber/40 bg-amber/10" : "text-mut border-line bg-panel2";
   const rest = ex.rest ?? restDefault;
@@ -68,7 +69,10 @@ function ExerciseCard({ ex, last, sug, live, errKey, restDefault, wStep, onMenu,
             <div className="font-display text-[19px] text-amber leading-tight">{ex.name}</div>
             <div className="text-[12px] text-faint font-mono mt-0.5">meta {ex.lo}–{ex.hi} reps{ex.unit === "kg/mano" ? " · kg por mano" : ex.unit === "kg/lado" ? " · kg por lado" : ex.unit === "bw" ? " · peso corporal" : ""}</div>
           </div>
-          <button type="button" onClick={onMenu} aria-label="opciones del ejercicio" className="w-9 h-9 -mr-1.5 rounded-lg grid place-items-center text-mut cursor-pointer active:bg-panel2 shrink-0"><Ellipsis size={20} /></button>
+          <div className="flex shrink-0 -mr-1.5">
+            <button type="button" onClick={onTech} aria-label="cómo se hace" className="w-9 h-9 rounded-lg grid place-items-center text-amber cursor-pointer active:bg-panel2"><Info size={19} /></button>
+            <button type="button" onClick={onMenu} aria-label="opciones del ejercicio" className="w-9 h-9 rounded-lg grid place-items-center text-mut cursor-pointer active:bg-panel2"><Ellipsis size={20} /></button>
+          </div>
         </div>
         {ex.note && <div className="mt-1.5 text-[12.5px] text-mut italic">{ex.note}</div>}
         {prevSets.length > 0 && (
@@ -127,6 +131,7 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
   const [dialog, setDialog] = useState(null); // "finish" | "empty" | "discard" | { type: "removeEx", ei }
   const [updateRoutine, setUpdateRoutine] = useState(false);
   const [errKey, setErrKey] = useState(null);
+  const [tech, setTech] = useState(null); // índice del ejercicio cuya técnica se muestra
   const initialRef = useRef(JSON.stringify(session));
   const audioRef = useRef(null), wakeRef = useRef(null);
 
@@ -273,6 +278,7 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
           <ExerciseCard key={ex.key} ex={ex} last={lasts[ei]} sug={sugs[ei]} live={live} errKey={errKey} restDefault={restDefault}
             wStep={incFor(ex, state.customExercises) || 2.5}
             onMenu={() => setMenu({ type: "exercise", ei })}
+            onTech={() => setTech(ei)}
             onRest={() => setMenu({ type: "rest", ei })}
             onSetMenu={(si) => setMenu({ type: "set", ei, si })}
             onToggle={(si) => toggle(ei, si)}
@@ -315,6 +321,9 @@ export function WorkoutLogger({ session, state, catalog, recent, onChange, onMin
           </div>
         </div>
       )}
+
+      <TechniqueSheet open={tech != null} name={session.exercises[tech]?.name} onClose={() => setTech(null)}
+        onUse={(name) => { replaceExercise(tech, name); setTech(null); }} />
 
       {/* ---- menús ---- */}
       <Sheet open={!!exMenu} onClose={() => setMenu(null)} title={exMenu?.name}>

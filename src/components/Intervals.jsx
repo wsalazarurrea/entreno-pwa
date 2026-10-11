@@ -9,6 +9,7 @@ import { Card } from "./ui/Card.jsx";
 import { StepInput } from "./ui/StepInput.jsx";
 import { ConfirmDialog } from "./ui/Sheet.jsx";
 import { WOD_LIBRARY, WOD_MODE_LABEL } from "../data/wods.js";
+import { WodGuideSheet } from "./TechniqueSheet.jsx";
 
 const BG = { work: "#ff5a1f", rest: "#0fbf9f", warmup: "#f5a400", cooldown: "#7b4dff" };
 const inputCls = "w-full px-3 py-2.5 bg-panel border border-line rounded-xl text-ink outline-none focus:border-amber";
@@ -173,6 +174,7 @@ function TimerEditor({ timer, isNew, onSave, onCancel, onDelete }){
 /** Pestaña Intervalos: temporizadores guardados (crear, editar, duplicar, iniciar). */
 function WodCard({ wod, onStart, onCopy }){
   const [open, setOpen] = useState(false);
+  const [guide, setGuide] = useState(false);
   const badge = wod.mode === "intervals" ? timerSummary(wod) : `${WOD_MODE_LABEL[wod.mode]} ${fmtSec(wod.capSec)}`;
   return (
     <Card className="p-4">
@@ -189,6 +191,8 @@ function WodCard({ wod, onStart, onCopy }){
         {!open && wod.workout.length > 3 && <div className="text-[12.5px] text-faint">ver todo…</div>}
         {open && wod.notes && <div className="text-[12.5px] text-mut mt-1.5">{wod.notes}</div>}
       </button>
+      <button type="button" onClick={() => setGuide(true)} className="w-full mt-3 py-2 rounded-lg bg-panel2 text-[14px] font-semibold text-amber cursor-pointer">📖 Cómo se hace · escalado · técnica</button>
+      <WodGuideSheet open={guide} wod={wod} onClose={() => setGuide(false)} />
       {open && (
         <button type="button" onClick={() => onCopy(wod)}
           className="w-full mt-3 flex items-center justify-center gap-1.5 border border-line rounded-lg py-2 text-sm font-medium text-ink cursor-pointer"><Copy size={14} /> Copiar a mis temporizadores y editar</button>

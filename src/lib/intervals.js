@@ -33,7 +33,8 @@ export function presetTimers(){
 }
 
 export function cloneTimer(t){
-  return { ...JSON.parse(JSON.stringify(t)), id: newId("t"), steps: t.steps.map(s => ({ ...s, id: newId("p") })) };
+  const ref = t.ref || (String(t.id).startsWith("wod-") ? t.id : undefined);
+  return { ...JSON.parse(JSON.stringify(t)), id: newId("t"), ...(ref ? { ref } : {}), steps: (t.steps || []).map(s => ({ ...s, id: newId("p") })) };
 }
 
 /** Lista plana de fases con su inicio (segundos desde el comienzo). */

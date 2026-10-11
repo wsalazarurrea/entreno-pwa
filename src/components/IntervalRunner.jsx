@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Pause, Play, SkipForward, SkipBack, Volume2, VolumeX, Flag, Plus, Minus, Settings2 } from "lucide-react";
+import { X, Pause, Play, SkipForward, SkipBack, Volume2, VolumeX, Flag, Plus, Minus, Settings2, BookOpen } from "lucide-react";
+import { WodGuideSheet } from "./TechniqueSheet.jsx";
+import { WOD_GUIDES } from "../data/wodGuides.js";
 import { buildPhases, totalSec, runStatus, pauseRun, resumeRun, skipPhase, backPhase, finishRun, wodResult, resultLabel, fmtSec } from "../lib/intervals.js";
 import { cue, speak, resumeSound, unlockSound, stopSpeaking } from "../lib/sound.js";
 import { cueFor, voiceConfig, finishSpeech, roundSpeech } from "../lib/voice.js";
@@ -31,6 +33,7 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
   const [muted, setMuted] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [guide, setGuide] = useState(false);
   const cfg = voiceConfig(voice);
   const harry = cfg.engine === "harry";
   const say = (keysOrText) => {
@@ -115,6 +118,7 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
           <button type="button" onClick={() => { unlockSound(); setMuted(m => { if (!m) { stopSpeaking(); stopClips(); } return !m; }); }} aria-label={muted ? "activar sonido" : "silenciar"} className="w-10 h-10 grid place-items-center rounded-full bg-white/15 cursor-pointer">
             {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
           </button>
+          {WOD_GUIDES[t.ref || t.id] && <button type="button" onClick={() => setGuide(true)} aria-label="cómo se hace el WOD" className="w-10 h-10 grid place-items-center rounded-full bg-white/15 cursor-pointer"><BookOpen size={19} /></button>}
           <button type="button" onClick={() => setSettings(true)} aria-label="configurar voz" className="w-10 h-10 grid place-items-center rounded-full bg-white/15 cursor-pointer"><Settings2 size={19} /></button>
         </div>
       </div>
@@ -181,6 +185,8 @@ export function IntervalRunner({ run, onChange, onFinish, onStop, voice, onVoice
           </div>
         )}
       </div>
+
+      <div className="text-ink"><WodGuideSheet open={guide} wod={t} onClose={() => setGuide(false)} /></div>
 
       <Sheet open={settings} onClose={() => setSettings(false)} title="Voz y sonido">
         <div className="px-4 pb-2 text-ink"><VoiceSettings voice={cfg} onChange={onVoiceChange} /></div>

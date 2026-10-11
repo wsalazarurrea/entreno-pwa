@@ -10,6 +10,9 @@ import { getAudioContext } from "./sound.js";
 
 const BASE = "/voice/harry/";
 const cache = new Map();
+const status = { ok: 0, failed: 0, lastError: "", mode: "webaudio" };
+/** Diagnóstico para "Probar voz": cuántos audios cargaron y el último error. */
+export const clipStatus = () => ({ ...status });
 
 function trimSilence(ctx, buf, threshold = 0.015){
   const data = buf.getChannelData(0);
@@ -31,10 +34,18 @@ export function loadClip(key){
         const ctx = getAudioContext();
         if (!ctx) return null;
         const res = await fetch(`${BASE}${key}.mp3`);
-        if (!res.ok) return null;
-        const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+        // En la app de iPhone, Capacitor entrega los .mp3 sin código HTTP (status 0): es válido.
+        if (!res.ok && res.status !== 0) throw new Error(`HTTP ${res.status}`);
+        const data = await res.arrayBuffer();
+        if (!data.byteLength) throw new Error("archivo vacío");
+        const buf = await ctx.decodeAudioData(data);
+        status.ok++;
         return trimSilence(ctx, buf);
-      } catch { return null; }
+      } catch (e) {
+        status.failed++; status.lastError = `${key}: ${e?.message || e}`;
+        cache.delete(key); // reintentar la próxima vez
+        return null;
+      }
     })());
   }
   return cache.get(key);
@@ -44,19 +55,38 @@ export function preloadClips(keys){ keys.forEach(k => loadClip(k)); }
 
 let playing = [];
 let seq = 0;
+let element = null;
 
 export function stopClips(){
   playing.forEach(s => { try { s.stop(); } catch { /* ya terminó */ } });
   playing = [];
+  if (element) { try { element.pause(); } catch { /* */ } element = null; }
+}
+
+/** Plan B: reproducir con <audio> (sin recorte de silencio) si Web Audio no pudo decodificar. */
+async function playWithElements(keys, volume, my){
+  status.mode = "audio";
+  for (const k of keys) {
+    if (my !== seq) return;
+    const a = new Audio(`${BASE}${k}.mp3`);
+    a.volume = Math.min(1, volume);
+    element = a;
+    try {
+      await a.play();
+      await new Promise(r => { a.onended = r; a.onerror = r; a.onpause = r; });
+    } catch (e) { status.lastError = `<audio> ${k}: ${e?.message || e}`; return; }
+  }
 }
 
 /** Reproduce los audios en orden, como una sola frase. */
 export async function playClips(keys, { volume = 1 } = {}){
   if (!keys?.length) return;
   const my = ++seq;
-  const bufs = (await Promise.all(keys.map(loadClip))).filter(Boolean);
-  if (my !== seq || !bufs.length) return; // llegó otro anuncio mientras cargaba
+  const loaded = await Promise.all(keys.map(loadClip));
+  if (my !== seq) return; // llegó otro anuncio mientras cargaba
   stopClips();
+  if (loaded.some(b => !b)) return playWithElements(keys, volume, my);
+  const bufs = loaded;
   const ctx = getAudioContext();
   if (!ctx) return;
   if (ctx.state === "suspended") { try { await ctx.resume(); } catch { /* */ } }

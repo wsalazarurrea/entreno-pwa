@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
 import { voiceConfig, cheer } from "../lib/voice.js";
 import { sampleClips } from "../lib/voicepack.js";
-import { playClips } from "../lib/clips.js";
+import { playClips, clipStatus } from "../lib/clips.js";
 import { speak, unlockSound, cue, spanishLanguages } from "../lib/sound.js";
 import { cx } from "../lib/cx.js";
 
@@ -42,9 +42,20 @@ export function VoiceSettings({ voice, onChange }){
   useEffect(() => { spanishLanguages().then(l => setLangs(l.includes(cfg.lang) ? l : [cfg.lang, ...l])); }, [cfg.lang]);
   const toggleWarning = (sec, on) => set({ warnings: on ? [...new Set([...cfg.warnings, sec])].sort((a, b) => b - a) : cfg.warnings.filter(w => w !== sec) });
   const harry = cfg.engine === "harry";
+  const [diag, setDiag] = useState("");
   const test = () => {
     unlockSound();
-    if (harry) { if (cfg.beeps) cue("go"); if (cfg.enabled) setTimeout(() => playClips(sampleClips(cfg), { volume: cfg.volume }), 450); return; }
+    if (harry) {
+      if (cfg.beeps) cue("go");
+      if (!cfg.enabled) { setDiag("La voz está desactivada arriba."); return; }
+      setDiag("Cargando la voz de Harry…");
+      setTimeout(async () => {
+        await playClips(sampleClips(cfg), { volume: cfg.volume });
+        const s = clipStatus();
+        setDiag(s.failed ? `⚠️ ${s.ok} audios OK, ${s.failed} con error (${s.mode}). Último: ${s.lastError}` : `✓ Voz de Harry cargada (${s.ok} audios).`);
+      }, 450);
+      return;
+    }
     if (cfg.beeps) cue("go");
     if (cfg.enabled) setTimeout(() => speak(["Trabajo. Ronda 1 de 8.", cheer(cfg, "work"), "Quedan 30 segundos.", cheer(cfg, "push"), "3, 2, 1"].filter(Boolean).join(" "), cfg), 450);
   };
@@ -116,6 +127,7 @@ export function VoiceSettings({ voice, onChange }){
         </label>
         <button type="button" onClick={test}
           className="w-full py-3 flex items-center justify-center gap-2 border border-line rounded-xl text-[14px] font-semibold text-ink cursor-pointer bg-panel"><Volume2 size={16} /> Probar voz</button>
+        {diag && <div className="text-[12.5px] text-mut break-words">{diag}</div>}
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ const monthLabel = (d) => { const x = parseLocalDate(d); return `${MONTHS[x.getM
 function WorkoutCard({ w, onEdit, onRepeat, onDelete, onOpenExercise, onSendToHealth }){
   const [open, setOpen] = useState(false);
   const [health, setHealth] = useState(null); // null | "sending" | { ok } | { error }
-  const sendHealth = async () => { setHealth("sending"); setHealth(await onSendToHealth(w)); };
+  const sendHealth = async () => { setHealth("sending"); const r = await onSendToHealth(w); setHealth(r?.pending ? null : r); };
   const st = workoutStats(w);
   const prs = w.prs?.length || 0;
   return (

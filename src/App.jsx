@@ -9,7 +9,7 @@ import { buildCatalog } from "./data/exercises.js";
 import { blankRoutine } from "./data/routines.js";
 import { formatClock } from "./lib/dates.js";
 import { initPush, scheduleRest } from "./lib/push-client.js";
-import { isNative, initNative, syncRestNotification, saveWorkoutToHealth } from "./lib/native.js";
+import { isNative, initNative, syncRestNotification, saveWorkoutToHealth, sendWorkoutViaShortcut, onShortcutReturn } from "./lib/native.js";
 import { BottomNav } from "./components/BottomNav.jsx";
 import { Train } from "./components/Train.jsx";
 import { WorkoutLogger } from "./components/WorkoutLogger.jsx";
@@ -66,6 +66,8 @@ export default function App(){
   // cambiar de app), con el tiempo que quede en ese momento. Con la app abierta suena el
   // temporizador propio, así que no hace falta push. Si vuelves y cambias el descanso, al salir
   // de nuevo se programa otro (el anterior llega como aviso neutro, ver public/sw.js).
+  const stateRef = useRef(null);
+  useEffect(()=>{ stateRef.current = state; },[state]);
   const sessionRef = useRef(null);
   const pushedForRef = useRef(null);
   useEffect(()=>{ sessionRef.current = session; },[session]);
@@ -122,28 +124,57 @@ export default function App(){
     endSession();
     if(wasEdit) setTab("history");
     else {
-      setSummary(sm);
+      const base = { ...sm, workoutId: workout.id };
+      setSummary(base);
       if(isNative && ns.healthSync){
-        setSummary({ ...sm, health: { pending: true } });
+        setSummary({ ...base, health: { pending: true } });
+        // Pequeña pausa para que se vea el resumen antes de saltar a Atajos.
+        await new Promise(r => setTimeout(r, 600));
         const res = await sendToHealth(workout, ns);
-        setSummary({ ...sm, health: res });
+        setSummary(x => x && x.workoutId === workout.id && x.health?.pending ? { ...x, health: res } : x);
       }
     }
     window.scrollTo(0, 0);
   };
 
-  /** Guarda un entrenamiento en Apple Salud y marca healthUuid. Devuelve { ok } o { error }. */
+  const markInHealth = (id, how) => setState(s => {
+    const ns = { ...s, workouts: s.workouts.map(x => x.id === id ? { ...x, healthUuid: how } : x) };
+    saveState(ns);
+    return ns;
+  });
+
+  /** Guarda un entrenamiento en Apple Salud. Con "atajo" (instalación gratuita) abre Atajos y el
+   * resultado llega después por onShortcutReturn; con "directo" usa HealthKit. Devuelve
+   * { ok } | { error } | { pending: true }. */
   const sendToHealth = async (w, base = state) => {
     try{
+      if((base.healthMode || "atajo") === "atajo"){
+        await sendWorkoutViaShortcut(w, base.shortcutName);
+        return { pending: true, via: "atajo" };
+      }
       const uuid = await saveWorkoutToHealth(w, base.bodyKg);
-      setState(s => {
-        const ns = { ...s, workouts: s.workouts.map(x => x.id === w.id ? { ...x, healthUuid: uuid || true } : x) };
-        saveState(ns);
-        return ns;
-      });
+      markInHealth(w.id, uuid || true);
       return { ok: true };
-    }catch(e){ return { error: e?.message || "No se pudo guardar en Salud" }; }
+    }catch(e){
+      const msg = e?.message || "No se pudo guardar en Salud";
+      return { error: /healthkit entitlement/i.test(msg)
+        ? "Esta instalación (firma gratuita) no permite escribir en Salud directamente. En Ajustes → Apple Salud elige «Atajo de iOS»."
+        : msg };
+    }
   };
+
+  // Vuelta desde Atajos (entreno://salud?ok|error|cancel&id=…)
+  const [notice, setNotice] = useState(null);
+  useEffect(()=> onShortcutReturn(({ id, status }) => {
+    const name = stateRef.current?.shortcutName || "Entreno a Salud";
+    const health = status === "ok" ? { ok: true }
+      : status === "cancel" ? { error: "Cancelaste el atajo; no se guardó en Salud." }
+      : { error: `El atajo «${name}» falló o no existe en la app Atajos.` };
+    if(status === "ok" && id) markInHealth(id, "atajo");
+    setSummary(x => x && x.workoutId === id ? { ...x, health } : x);
+    setNotice(health.ok ? "❤️ Guardado en Apple Salud" : health.error);
+    setTimeout(() => setNotice(null), 5000);
+  }), []);
   const discard = () => { const wasEdit = session?.mode === "edit"; endSession(); if(wasEdit) setTab("history"); };
 
   const saveRoutine = async(routine)=>{
@@ -231,6 +262,12 @@ export default function App(){
           {session && session.mode === "live" && <ResumeBar session={session} onOpen={()=>{ setMinimized(false); window.scrollTo(0, 0); }} />}
           <BottomNav tab={tab} onChange={setTab} />
         </>
+      )}
+
+      {notice && (
+        <div className="fixed left-4 right-4 z-50 bg-ink text-white text-[14px] rounded-xl px-4 py-3 shadow-lg" style={{ top: "calc(var(--sat) + 10px)" }} onClick={() => setNotice(null)}>
+          {notice}
+        </div>
       )}
 
       <ConfirmDialog open={!!pendingStart} title="Ya tienes un entrenamiento en curso"

@@ -25,7 +25,7 @@ export function Summary({ data, onClose }){
 
       {data.health && (
         <Card className={cx("p-3 mb-3.5 text-[13.5px]", data.health.error ? "bg-coral/10! border-coral/40! text-ink" : "text-ink")}>
-          {data.health.pending ? "Guardando en Apple Salud…" : data.health.ok ? "❤️ Guardado en Apple Salud (aparece en Fitness)." : `No se pudo guardar en Salud: ${data.health.error}`}
+          {data.health.pending ? "Abriendo Atajos para guardar en Apple Salud…" : data.health.ok ? "❤️ Guardado en Apple Salud (aparece en Fitness)." : `No se guardó en Salud: ${data.health.error}`}
         </Card>
       )}
 

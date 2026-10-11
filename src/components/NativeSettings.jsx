@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { notificationPermission, ensureNotificationPermission, testNotification, healthAvailable, healthConnect, estimateKcal } from "../lib/native.js";
+import { notificationPermission, ensureNotificationPermission, testNotification, healthAvailable, healthConnect, estimateKcal, DEFAULT_SHORTCUT } from "../lib/native.js";
 import { cx } from "../lib/cx.js";
 import { Card } from "./ui/Card.jsx";
 import { NumInput } from "./ui/NumInput.jsx";
@@ -27,9 +27,14 @@ export function NativeSettings({ state, onChangeHealth }){
       const ok = await healthConnect();
       setHealth(h => ({ ...h, msg: ok ? "Conectado: Entreno puede guardar entrenamientos en Salud." : "Salud no dio permiso de escritura. Revísalo en Salud → Perfil → Apps → Entreno." }));
       if (ok && !state.healthSync) onChangeHealth({ healthSync: true });
-    } catch (e) { setHealth(h => ({ ...h, msg: `Error: ${e?.message || e}` })); }
+    } catch (e) {
+      const m = e?.message || String(e);
+      setHealth(h => ({ ...h, msg: /healthkit entitlement/i.test(m) ? "Esta instalación (firma gratuita) no tiene permiso de Salud. Usa «Atajo de iOS»." : `Error: ${m}` }));
+    }
   };
   const kcal = estimateKcal(3600, Number(kg.replace(",", ".")) || 0);
+  const mode = state.healthMode || "atajo";
+  const shortcutName = state.shortcutName ?? DEFAULT_SHORTCUT;
 
   return (
     <>
@@ -47,17 +52,41 @@ export function NativeSettings({ state, onChangeHealth }){
 
       <h3 className="font-bold mb-2 px-1">Apple Salud</h3>
       <Card className="p-4 mb-5 flex flex-col gap-3">
-        {health.available === false ? (
+        <div className="text-[13px] text-mut">Cada entrenamiento terminado se guarda en Salud como <b className="text-ink">Entrenamiento tradicional de fuerza</b> y aparece en la app Fitness.</div>
+
+        <div className="flex bg-panel2 rounded-xl p-1">
+          {[["atajo", "Atajo de iOS"], ["directo", "Directo"]].map(([k, l]) => (
+            <button key={k} type="button" onClick={() => onChangeHealth({ healthMode: k })}
+              className={cx("flex-1 py-2 rounded-lg text-[13.5px] font-semibold cursor-pointer", mode === k ? "bg-panel text-ink shadow-sm" : "text-mut")}>{l}</button>
+          ))}
+        </div>
+
+        {mode === "atajo" ? (
+          <>
+            <div className="text-[13px] text-mut">Con la instalación gratuita (SideStore) la app no puede escribir en Salud, pero la app <b className="text-ink">Atajos</b> sí. Entreno abre tu atajo, le pasa los minutos y vuelve sola.</div>
+            <details className="text-[13px] text-ink bg-panel2 rounded-xl px-3 py-2.5">
+              <summary className="font-semibold cursor-pointer">Cómo crear el atajo (una sola vez)</summary>
+              <ol className="list-decimal pl-5 mt-2 flex flex-col gap-1.5 text-mut">
+                <li>Abre <b className="text-ink">Atajos</b> → <b className="text-ink">+</b>. Toca el nombre arriba → <b className="text-ink">Renombrar</b> → escribe <b className="text-ink">{shortcutName}</b>.</li>
+                <li>Agrega la acción <b className="text-ink">Ajustar fecha</b>. Déjala así: <b className="text-ink">Restar</b> · toca el número → <i>Seleccionar variable</i> → <b className="text-ink">Entrada del atajo</b> · <b className="text-ink">minutos</b> · de <b className="text-ink">Fecha actual</b>.</li>
+                <li>Agrega la acción <b className="text-ink">Registrar entrenamiento</b>: tipo <b className="text-ink">Entrenamiento tradicional de fuerza</b>; <b className="text-ink">Fecha</b> → <b className="text-ink">Fecha ajustada</b>; en <b className="text-ink">Duración</b> toca el número → <b className="text-ink">Entrada del atajo</b> · <b className="text-ink">minutos</b>.</li>
+                <li>Si arriba aparece «Recibir … de», deja que reciba <b className="text-ink">Texto</b>. Listo, toca OK.</li>
+              </ol>
+            </details>
+            <div>
+              <label className="text-[11px] font-medium text-mut mb-1 block">Nombre exacto del atajo</label>
+              <input value={shortcutName} onChange={e => onChangeHealth({ shortcutName: e.target.value })}
+                className="w-full px-3 py-2.5 bg-panel border border-line rounded-xl text-ink outline-none focus:border-amber" />
+            </div>
+            <div className="text-faint text-xs">Para probar: Historial → abre un entrenamiento → «Enviar a Apple Salud». Se registra con su duración, terminando en ese momento.</div>
+          </>
+        ) : health.available === false ? (
           <div className="text-[13px] text-coral">Salud no está disponible en este dispositivo.</div>
         ) : (
           <>
-            <div className="text-[13px] text-mut">Cada entrenamiento terminado se guarda en Salud como <b className="text-ink">Fuerza tradicional</b> (hora de inicio, duración y calorías estimadas) y aparece en la app Fitness.</div>
+            <div className="text-[13px] text-mut">Escribe en Salud sin pasar por Atajos (hora real de inicio y calorías). Requiere que la app esté firmada con una cuenta de desarrollador pagada.</div>
             <button type="button" onClick={connect} className={btnCls}>❤️ Conectar con Apple Salud</button>
             {health.msg && <div className="text-[13px] text-mut">{health.msg}</div>}
-            <label className="flex items-center gap-2.5 text-[14px] cursor-pointer">
-              <input type="checkbox" checked={!!state.healthSync} onChange={e => onChangeHealth({ healthSync: e.target.checked })} className="w-4 h-4 accent-[#ef6c2e]" />
-              Guardar cada entrenamiento al terminar
-            </label>
             <div>
               <label className="text-[11px] font-medium text-mut mb-1 block">Tu peso corporal (kg), para estimar calorías</label>
               <NumInput decimal value={kg} placeholder="opcional"
@@ -67,6 +96,11 @@ export function NativeSettings({ state, onChangeHealth }){
             </div>
           </>
         )}
+
+        <label className="flex items-center gap-2.5 text-[14px] cursor-pointer">
+          <input type="checkbox" checked={!!state.healthSync} onChange={e => onChangeHealth({ healthSync: e.target.checked })} className="w-4 h-4 accent-[#ef6c2e]" />
+          Guardar cada entrenamiento al terminar
+        </label>
       </Card>
     </>
   );

@@ -7,6 +7,8 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { App as CapApp } from "@capacitor/app";
+import { AppLauncher } from "@capacitor/app-launcher";
 import { HealthWorkout } from "health-workout";
 
 export const isNative = Capacitor.isNativePlatform();
@@ -88,6 +90,37 @@ export async function saveWorkoutToHealth(w, bodyKg){
   const kcal = estimateKcal(dur, bodyKg);
   const r = await HealthWorkout.saveWorkout({ start, end: start + dur * 1000, id: w.id, ...(kcal ? { energyKcal: kcal } : {}) });
   return r.uuid;
+}
+
+/* ---------- Apple Salud vía Atajos (instalación gratuita) ----------
+   Con firma gratuita (SideStore/iLoader) la app no tiene permiso de HealthKit, pero la app
+   Atajos sí. La app abre el atajo del usuario pasándole los minutos del entrenamiento; el
+   atajo (2 acciones) resta esos minutos a la hora actual y registra "Entrenamiento
+   tradicional de fuerza". Al terminar, Atajos vuelve a Entreno por entreno://salud?... */
+
+export const DEFAULT_SHORTCUT = "Entreno a Salud";
+
+export function workoutMinutes(w){
+  return Math.max(1, Math.round((w.durationSec || 3600) / 60));
+}
+
+export async function sendWorkoutViaShortcut(w, name = DEFAULT_SHORTCUT){
+  const back = (k) => encodeURIComponent(`entreno://salud?${k}=1&id=${encodeURIComponent(w.id)}`);
+  const url = `shortcuts://x-callback-url/run-shortcut?name=${encodeURIComponent(name || DEFAULT_SHORTCUT)}`
+    + `&input=text&text=${workoutMinutes(w)}`
+    + `&x-success=${back("ok")}&x-error=${back("error")}&x-cancel=${back("cancel")}`;
+  await AppLauncher.openUrl({ url });
+}
+
+/** Escucha la vuelta desde Atajos. fn({ id, status: "ok" | "error" | "cancel" }). Devuelve la función para dejar de escuchar. */
+export function onShortcutReturn(fn){
+  if (!isNative) return () => {};
+  const handle = CapApp.addListener("appUrlOpen", ({ url }) => {
+    if (!url?.startsWith("entreno://salud")) return;
+    const q = new URL(url.replace("entreno://", "https://entreno/")).searchParams;
+    fn({ id: q.get("id"), status: q.has("ok") ? "ok" : q.has("cancel") ? "cancel" : "error" });
+  });
+  return () => { handle.then(h => h.remove()); };
 }
 
 /* ---------- Respaldo ---------- */

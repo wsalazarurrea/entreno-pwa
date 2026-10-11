@@ -64,6 +64,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.wsalazar.entreno</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>entreno</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Entreno guarda tus entrenamientos de fuerza en Salud para que aparezcan en Fitness.</string>
 	<key>NSHealthShareUsageDescription</key>

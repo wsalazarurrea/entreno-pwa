@@ -4,6 +4,7 @@ import { DEFAULT_ROUTINES, cloneRoutines, newId } from "../data/routines.js";
 import { findExercise, unitForEquipment } from "../data/exercises.js";
 import { localDate } from "./dates.js";
 import { presetTimers } from "./intervals.js";
+import { PLAN_ID, buildDefinicion12 } from "../data/plans/definicion12.js";
 import {
   buildSeedWorkouts, migrateV1Workouts, sortWorkouts, lastPerformance, isWorking,
   detectPRs, workoutStats, normName,
@@ -33,11 +34,14 @@ export async function clearTimerRun(){ try{ await storage.delete(TIMER_RUN_KEY);
 
 export function seedState(){
   const routines = cloneRoutines(DEFAULT_ROUTINES);
-  return {
+  return migrateState({
     version: STATE_VERSION, programName: DEFAULT_PROGRAM_NAME, restSeconds: DEFAULT_REST_SECONDS,
     routines, workouts: sortWorkouts(buildSeedWorkouts(SEED, routines)), customExercises: [], timers: presetTimers(),
-  };
+  }).state;
 }
+
+/** Perfil activo (cada rutina pertenece a un perfil). */
+export const activeProfile = (s) => s.profiles?.find(p => p.id === s.activeProfileId) || s.profiles?.[0] || null;
 
 /** Rellena campos nuevos en estados guardados por versiones anteriores, para
  * no perder el historial del usuario al añadir funciones. v1 → v2 convierte
@@ -58,6 +62,20 @@ export function migrateState(s){
   if(!Array.isArray(n.workouts)){ n.workouts = []; changed = true; }
   if(!Array.isArray(n.customExercises)){ n.customExercises = []; changed = true; }
   if(!Array.isArray(n.timers)){ n.timers = presetTimers(); changed = true; }
+  // Perfiles: agrupan rutinas con un mismo fin. Las rutinas sin perfil van al primero.
+  if(!Array.isArray(n.profiles) || !n.profiles.length){ n.profiles = [{ id:"pf-main", name:n.programName || DEFAULT_PROGRAM_NAME }]; changed = true; }
+  const ids = new Set(n.profiles.map(p => p.id));
+  if(n.routines.some(r => !ids.has(r.profileId))){ n.routines = n.routines.map(r => ids.has(r.profileId) ? r : { ...r, profileId:n.profiles[0].id }); changed = true; }
+  if(!ids.has(n.activeProfileId)){ n.activeProfileId = n.profiles[0].id; changed = true; }
+  // Plan de definición de 12 semanas: se carga una vez, en su propio perfil, y queda activo.
+  const imported = n.importedPlans || [];
+  if(!imported.includes(PLAN_ID)){
+    const plan = buildDefinicion12();
+    n.profiles = [...n.profiles, plan.profile];
+    n.routines = [...n.routines, ...plan.routines];
+    n.activeProfileId = plan.profile.id;
+    n.importedPlans = [...imported, PLAN_ID]; changed = true;
+  }
   return { state:n, changed };
 }
 

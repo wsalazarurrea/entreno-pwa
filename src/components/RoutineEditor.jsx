@@ -18,7 +18,7 @@ const fieldLabel = "text-[11px] font-medium text-mut mb-1 block";
 const numIn = "h-10";
 const numBtn = "h-10 w-8";
 
-export function RoutineEditor({ routine, catalog, recent, customExercises, restDefault, onCreateCustom, onSave, onCancel, onDelete }){
+export function RoutineEditor({ routine, catalog, recent, customExercises, restDefault, profiles = [], onCreateCustom, onSave, onCancel, onDelete }){
   // `_k`: id transitorio por ejercicio para el arrastre y las keys de React; se descarta al guardar.
   const [draft, setDraft] = useState(() => {
     const r = cloneRoutines(routine);
@@ -97,6 +97,14 @@ export function RoutineEditor({ routine, catalog, recent, customExercises, restD
               </div>
             </div>
           </div>
+          {profiles.length > 1 && (
+            <div>
+              <label className={fieldLabel}>Perfil</label>
+              <select className={inputCls} value={draft.profileId || ""} onChange={e => setField("profileId", e.target.value)}>
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.name.trim() || "Sin nombre"}</option>)}
+              </select>
+            </div>
+          )}
         </Card>
 
         <div className="flex items-center justify-between px-1">

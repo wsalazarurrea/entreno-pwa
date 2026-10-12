@@ -29,7 +29,7 @@ async function shareOrDownload(filename, text){
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-export function Settings({ state, onChangeProgram, onChangeRest, onChangeHealth, onChangeVoice, onReset, onImportHevy, onRestore }){
+export function Settings({ state, onChangeRest, onChangeHealth, onChangeVoice, onReset, onImportHevy, onRestore }){
   const [status, setStatus] = useState(getSubscription() ? "activo" : "inactivo");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -77,15 +77,9 @@ export function Settings({ state, onChangeProgram, onChangeRest, onChangeHealth,
 
   return (
     <div className="p-4 pb-24">
-      <div className="text-mut text-[13px] mb-4">Personaliza tu programa y los avisos de descanso.</div>
+      <div className="text-mut text-[13px] mb-4">Personaliza el descanso y los avisos. Los perfiles se administran en Rutinas.</div>
 
       <Card className="p-4 mb-3.5 flex flex-col gap-4">
-        <div>
-          <label className="text-[11px] font-medium text-mut mb-1 block">Nombre del programa</label>
-          <input className={inputCls} value={state.programName}
-            onChange={e => onChangeProgram(e.target.value)} placeholder="Mi entrenamiento" />
-          <div className="text-faint text-xs mt-1">Aparece en la cabecera de la app.</div>
-        </div>
         <div>
           <label className="text-[11px] font-medium text-mut mb-1 block">Descanso predeterminado entre series</label>
           <RestSelect value={state.restSeconds} onChange={v => onChangeRest(v ?? 0)} className="w-full" />

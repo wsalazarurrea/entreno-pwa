@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronUp } from "lucide-react";
 import {
   loadState, saveState, seedState, migrateState, loadActive, saveActive, clearActive, loadTimerRun, saveTimerRun, clearTimerRun,
-  sessionFromRoutine, sessionFromWorkout, emptySession, commitSession,
+  sessionFromRoutine, sessionFromWorkout, emptySession, commitSession, activeProfile,
 } from "./lib/training.js";
 import { mergeHevyImport } from "./lib/hevyImport.js";
 import { cheerBank } from "./lib/voice.js";
@@ -22,6 +22,7 @@ import { WorkoutLogger } from "./components/WorkoutLogger.jsx";
 import { Summary } from "./components/Summary.jsx";
 import { History } from "./components/History.jsx";
 import { Routines } from "./components/Routines.jsx";
+import { ProfileBar } from "./components/ProfileBar.jsx";
 import { RoutineEditor } from "./components/RoutineEditor.jsx";
 import { Settings } from "./components/Settings.jsx";
 import { ConfirmDialog } from "./components/ui/Sheet.jsx";
@@ -249,6 +250,12 @@ export default function App(){
 
   if (!state) return <div className="bg-bg text-mut min-h-screen grid place-items-center">Cargando tu historial…</div>;
 
+  // Rutinas del perfil activo; al reordenar o duplicar se reemplazan sólo ésas.
+  const profile = activeProfile(state);
+  const profileRoutines = state.routines.filter(r => r.profileId === profile?.id);
+  const setProfileRoutines = (list) => persist({ ...state, routines: [...state.routines.filter(r => r.profileId !== profile?.id), ...list] });
+  const profileBar = <ProfileBar state={state} onChange={(patch)=>persist({ ...state, ...patch })} />;
+
   const pickerProps = { catalog, recent, onCreateCustom: createCustom };
 
   return (
@@ -275,11 +282,12 @@ export default function App(){
           onSave={saveRoutine}
           onCancel={()=>setEditingRoutine(null)}
           onDelete={editingRoutine.__isNew ? undefined : deleteRoutine}
+          profiles={state.profiles}
         />
       ) : (
         <>
           {!timerEditing && <div className="px-4 pt-5 pb-1">
-            <div className="font-mono text-[11px] tracking-[3px] text-violet uppercase truncate">{state.programName}</div>
+            <div className="font-mono text-[11px] tracking-[3px] text-violet uppercase truncate">{profile?.name.trim() || state.programName}</div>
             <h1 className="font-display text-[40px] leading-[1.05] mt-1 text-hot">
               {{ train:"Entrenar", intervals:"Intervalos", history:"Historial", routines:"Rutinas", settings:"Ajustes" }[tab]}
             </h1>
@@ -288,7 +296,7 @@ export default function App(){
           </div>}
 
           {tab==="train" && (
-            <Train state={state} routines={state.routines}
+            <Train state={state} routines={profileRoutines} profileBar={profileBar}
               onSelect={(id)=>start(sessionFromRoutine(state.routines.find(r=>r.id===id), state))}
               onStartEmpty={()=>start(emptySession())}
               onGoToRoutines={()=>setTab("routines")} />
@@ -305,16 +313,15 @@ export default function App(){
           )}
           {tab==="routines" && (
             <Routines
-              routines={state.routines}
-              onNew={()=>setEditingRoutine({ ...blankRoutine(), __isNew:true })}
+              routines={profileRoutines} profileBar={profileBar}
+              onNew={()=>setEditingRoutine({ ...blankRoutine(), profileId:profile?.id, __isNew:true })}
               onEdit={(r)=>setEditingRoutine(r)}
-              onChange={(routines)=>persist({ ...state, routines })}
+              onChange={setProfileRoutines}
             />
           )}
           {tab==="settings" && (
             <Settings
               state={state}
-              onChangeProgram={(programName)=>persist({ ...state, programName })}
               onChangeRest={(restSeconds)=>persist({ ...state, restSeconds })}
               onChangeHealth={(patch)=>persist({ ...state, ...patch })}
               onChangeVoice={(voice)=>persist({ ...state, voice })}

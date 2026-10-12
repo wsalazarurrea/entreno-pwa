@@ -8,7 +8,7 @@ import { StatTile } from "./ui/StatTile.jsx";
 import { Card } from "./ui/Card.jsx";
 import { ACCENT } from "./ui/accent.js";
 
-export function Train({ state, routines, onSelect, onStartEmpty, onGoToRoutines }){
+export function Train({ state, routines, profileBar, onSelect, onStartEmpty, onGoToRoutines }){
   const workouts = state.workouts;
   const streak = useMemo(() => computeWeekStreak(workouts), [workouts]);
   const week = useMemo(() => currentWeekStats(workouts), [workouts]);
@@ -21,6 +21,8 @@ export function Train({ state, routines, onSelect, onStartEmpty, onGoToRoutines 
         <StatTile icon={TrendingUp} accent="teal" label="Esta semana" value={`${week.count} · ${Math.round(week.volume).toLocaleString("es")} kg`} />
       </div>
 
+      {profileBar}
+
       <button type="button" onClick={onStartEmpty}
         className="w-full mb-5 py-3 rounded-xl border border-dashed border-amber/60 text-amber font-semibold flex items-center justify-center gap-2 cursor-pointer">
         <Plus size={18} /> Empezar entrenamiento libre
@@ -28,7 +30,7 @@ export function Train({ state, routines, onSelect, onStartEmpty, onGoToRoutines 
 
       {routines.length === 0 ? (
         <Card className="p-6 text-center">
-          <div className="text-mut text-sm mb-3">No tienes rutinas todavía. Crea la primera para empezar a entrenar.</div>
+          <div className="text-mut text-sm mb-3">Este perfil no tiene rutinas todavía. Crea la primera para empezar a entrenar.</div>
           <button onClick={onGoToRoutines}
             className="inline-flex items-center gap-1.5 bg-amber text-white rounded-lg px-4 py-2.5 font-bold text-sm cursor-pointer">
             <ClipboardList size={16} /> Ir a Rutinas

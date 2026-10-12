@@ -6,12 +6,13 @@ import { Tag } from "./ui/Tag.jsx";
 import { SortableList, SortableItem } from "./ui/Sortable.jsx";
 import { arrayMove } from "../lib/array.js";
 
-export function Routines({ routines, onNew, onEdit, onChange }){
+export function Routines({ routines, profileBar, onNew, onEdit, onChange }){
   const duplicate = (r) => onChange([...routines, { ...cloneRoutines(r), id: newId(), title: `${r.title} (copia)` }]);
   const reorder = (from, to) => onChange(arrayMove(routines, from, to));
 
   return (
     <div className="p-4 pb-24">
+      {profileBar}
       <div className="flex items-center justify-between mb-1">
         <h2 className="text-[15px] font-bold text-mut">{routines.length} {routines.length === 1 ? "rutina" : "rutinas"}</h2>
         <button onClick={onNew}
@@ -23,7 +24,7 @@ export function Routines({ routines, onNew, onEdit, onChange }){
 
       {routines.length === 0 && (
         <Card className="p-6 text-center">
-          <div className="text-mut text-sm mb-3">Aún no tienes rutinas.</div>
+          <div className="text-mut text-sm mb-3">Este perfil aún no tiene rutinas.</div>
           <button onClick={onNew}
             className="inline-flex items-center gap-1.5 bg-amber text-white rounded-lg px-4 py-2.5 font-bold text-sm cursor-pointer">
             <Plus size={16} /> Crear mi primera rutina
